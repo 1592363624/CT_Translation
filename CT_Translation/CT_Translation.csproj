@@ -1,0 +1,71 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UseWPF>true</UseWPF>
+        <LangVersion>default</LangVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <TargetFramework>net10.0-windows</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Folder Include="Converters\"/>
+        <Folder Include="Models\"/>
+        <Folder Include="Services\"/>
+        <Folder Include="Src\"/>
+        <Folder Include="ViewModels\"/>
+        <Folder Include="Views\"/>
+    </ItemGroup>
+
+
+    <ItemGroup>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0"/>
+        <PackageReference Include="MaterialDesignThemes" Version="5.3.1-ci1231"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1"/>
+        <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1"/>
+        <PackageReference Include="Serilog" Version="4.3.1-dev-02395"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="8.0.0-dev-02318"/>
+    </ItemGroup>
+
+    <!-- 直接读取csproj中的<AssemblyVersion>属性，无需复杂解析 -->
+    <Target Name="AutoZipAfterPublish" AfterTargets="Publish">
+        <PropertyGroup>
+            <!-- 1. 直接获取csproj中<AssemblyVersion>节点的值（核心修改） -->
+            <ProjectVersion>$(AssemblyVersion)</ProjectVersion>
+            <!-- 容错：若未配置<AssemblyVersion>，默认0.0.0 -->
+            <ProjectVersion Condition=" '$(ProjectVersion)' == '' ">0.0.0</ProjectVersion>
+
+            <!-- 2. 项目名称（自动读取） -->
+            <ProjectName>$(MSBuildProjectName)</ProjectName>
+
+            <!-- 3. 路径处理（Publish同级目录） -->
+            <PublishDirectory>$(PublishDir.TrimEnd('\'))</PublishDirectory>
+            <ZipOutputDir>$([System.IO.Path]::GetDirectoryName('$(PublishDirectory)'))\</ZipOutputDir>
+
+            <!-- 4. 最终Zip文件名：项目名+AssemblyVersion.zip -->
+            <ZipFileName>$(ProjectName).$(ProjectVersion).zip</ZipFileName>
+            <ZipFullPath>$(ZipOutputDir)$(ZipFileName)</ZipFullPath>
+        </PropertyGroup>
+
+        <!-- 输出日志（验证版本号是否正确读取） -->
+        <Message Text="=== 开始打包 ===" Importance="high"/>
+        <Message Text="从csproj读取的AssemblyVersion：$(ProjectVersion)" Importance="high"/>
+        <Message Text="发布目录：$(PublishDirectory)" Importance="high"/>
+        <Message Text="Zip保存路径：$(ZipFullPath)" Importance="high"/>
+
+        <!-- 5. 创建目录 + 执行打包 -->
+        <MakeDir Directories="$(ZipOutputDir)" Condition="!Exists('$(ZipOutputDir)')"/>
+        <Exec Command="powershell -Command &quot;Compress-Archive -Path '$(PublishDirectory)\*' -DestinationPath '$(ZipFullPath)' -Force&quot;"
+              ContinueOnError="false"
+              WorkingDirectory="$(ZipOutputDir)"/>
+
+        <Message Text="=== 打包完成：$(ZipFullPath) ===" Importance="high"/>
+    </Target>
+
+</Project>
