@@ -1,5 +1,5 @@
+using CT_Translation.ViewModels;
 using System.Windows;
-using System.Windows.Input;
 
 namespace CT_Translation;
 
@@ -13,15 +13,22 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
-    private void Window_KeyDown(object sender, KeyEventArgs e)
+    private void Window_Drop(object sender, DragEventArgs e)
     {
-        if (e.Key == Key.Escape)
-            // 关闭应用程序
-            Application.Current.Shutdown();
-    }
-
-    private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        DragMove();
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (files != null && files.Length > 0)
+            {
+                var filePath = files[0];
+                if (System.IO.Path.GetExtension(filePath).ToLower() == ".ct")
+                {
+                    if (DataContext is MainViewModel vm)
+                    {
+                        vm.LoadFile(filePath);
+                    }
+                }
+            }
+        }
     }
 }

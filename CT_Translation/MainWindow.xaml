@@ -3,21 +3,101 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:vm="clr-namespace:CT_Translation.ViewModels"
         mc:Ignorable="d"
-        Title="MainWindow"
-        Width="700"
-        Height="500"
-        KeyDown="Window_KeyDown"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown"
-        AllowsTransparency="True"
+        Title="CT 汉化工具"
+        Width="1000"
+        Height="700"
+        AllowDrop="True"
+        Drop="Window_Drop"
         Style="{StaticResource MaterialDesignWindow}"
         Background="{DynamicResource MaterialDesignPaper}"
         TextElement.FontSize="14"
         TextElement.FontWeight="Medium"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-        WindowStartupLocation="CenterScreen"
-        WindowStyle="None">
+        WindowStartupLocation="CenterScreen">
+    
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
     <Grid>
-        <Button Width="100" Height="30" Content="启动" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏 -->
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center" Margin="0,0,20,0" Text="CT 汉化助手" FontSize="20" FontWeight="Bold"/>
+                
+                <Button Command="{Binding OpenFileCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="打开 .CT 文件">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="FolderOpen" Margin="0,0,8,0" />
+                        <TextBlock Text="打开" />
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding AutoTranslateCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="自动翻译所有条目">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Translate" Margin="0,0,8,0" />
+                        <TextBlock Text="自动翻译" />
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding SaveFileCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="保存为新文件">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ContentSave" Margin="0,0,8,0" />
+                        <TextBlock Text="保存" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </materialDesign:ColorZone>
+
+        <!-- 内容区域 -->
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Entries}" AutoGenerateColumns="False" CanUserAddRows="False" Margin="10"
+                  materialDesign:DataGridAssist.CellPadding="13 8 8 8"
+                  materialDesign:DataGridAssist.ColumnHeaderPadding="8">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding Id}" IsReadOnly="True" Width="80" />
+                
+                <!-- 原始文本，只读 -->
+                <DataGridTextColumn Header="原始描述" Binding="{Binding OriginalDescription}" IsReadOnly="True" Width="*" >
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- 翻译文本，可编辑 -->
+                <DataGridTextColumn Header="翻译后描述" Binding="{Binding TranslatedDescription, UpdateSourceTrigger=PropertyChanged}" Width="*" >
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryHueMidBrush}" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- 状态栏 -->
+        <StatusBar Grid.Row="2" Padding="10,5">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}" />
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock Text="{Binding CurrentFilePath}" Opacity="0.6" FontSize="12" />
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>
