@@ -30,4 +30,9 @@ public partial class CheatEntryModel : ObservableObject
     /// 对应的 XML 元素，用于保存回写
     /// </summary>
     public XElement? XmlElement { get; set; }
+
+    /// <summary>
+    /// 标记原始值是否被双引号包裹
+    /// </summary>
+    public bool HasQuotes { get; set; }
 }
