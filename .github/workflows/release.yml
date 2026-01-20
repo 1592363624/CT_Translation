@@ -33,12 +33,15 @@ jobs:
         id: package
         run: |
           $version = "${{ steps.version.outputs.version }}"
-          $publishDir = "CT_Translation\bin\Release\net10.0-windows\win-x64\publish"
-          if (-not (Test-Path $publishDir)) { throw "Publish output not found: $publishDir" }
-          $zipName = "CT_Translation-v$version-win-x64.zip"
-          $zipPath = Join-Path $publishDir $zipName
+          $publishDir = Get-ChildItem -Path "CT_Translation\bin\Release" -Recurse -Directory -Filter "publish" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $publishDir) { throw "Publish output not found under CT_Translation\bin\Release" }
+          $publishPath = $publishDir.FullName
+          $rid = Split-Path (Split-Path $publishPath -Parent) -Leaf
+          $tfm = Split-Path (Split-Path (Split-Path $publishPath -Parent) -Parent) -Leaf
+          $zipName = "CT_Translation-v$version-$tfm-$rid.zip"
+          $zipPath = Join-Path $env:RUNNER_TEMP $zipName
           if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
-          Compress-Archive -Path (Join-Path $publishDir "*") -DestinationPath $zipPath
+          Compress-Archive -Path (Join-Path $publishPath "*") -DestinationPath $zipPath
           "zip_path=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "zip_name=$zipName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
       - name: Create Release
