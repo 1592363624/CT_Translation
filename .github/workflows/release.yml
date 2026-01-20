@@ -1,0 +1,47 @@
+name: release
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Restore
+        run: dotnet restore CT_Translation/CT_Translation.csproj
+      - name: Read Version
+        id: version
+        run: |
+          [xml]$xml = Get-Content CT_Translation\CT_Translation.csproj
+          $version = $xml.Project.PropertyGroup.AssemblyVersion | Select-Object -First 1
+          if (-not $version) { throw "AssemblyVersion not found in csproj" }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+      - name: Publish
+        run: dotnet publish CT_Translation/CT_Translation.csproj -c Release -r win-x64 --self-contained false
+      - name: Find Zip
+        id: find_zip
+        run: |
+          $zip = Get-ChildItem -Path CT_Translation\bin\Release -Recurse -Filter "*.zip" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $zip) { throw "No zip found" }
+          "zip_path=$($zip.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "zip_name=$($zip.Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: ${{ steps.find_zip.outputs.zip_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
