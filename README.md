@@ -1,6 +1,10 @@
 # CT_Translation
 
-CT_Translation 
+CT_Translation 用于将CT的其他语言翻译为中文。
+
+## 计划
+
+- [ ] 支持AI翻译接口
 
 ## 📞 联系作者
 
