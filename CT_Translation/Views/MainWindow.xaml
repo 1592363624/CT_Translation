@@ -61,6 +61,13 @@
                         <TextBlock Text="清空" />
                     </StackPanel>
                 </Button>
+
+                <Button Command="{Binding OpenSettingsCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="翻译设置">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Cog" Margin="0,0,8,0" />
+                        <TextBlock Text="设置" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </materialDesign:ColorZone>
 
