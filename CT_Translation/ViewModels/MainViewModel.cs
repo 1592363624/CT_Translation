@@ -161,6 +161,18 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 清空界面内容命令
+    /// </summary>
+    [RelayCommand]
+    private void Clear()
+    {
+        Entries.Clear();
+        CurrentFilePath = string.Empty;
+        _currentDoc = null;
+        StatusMessage = "就绪";
+    }
+
     private void SaveFilePreservingOriginalFormat(string outputPath)
     {
         if (_currentDoc == null || string.IsNullOrWhiteSpace(CurrentFilePath) || !File.Exists(CurrentFilePath))

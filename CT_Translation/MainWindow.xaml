@@ -54,6 +54,13 @@
                         <TextBlock Text="保存" />
                     </StackPanel>
                 </Button>
+
+                <Button Command="{Binding ClearCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="清空所有内容">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Delete" Margin="0,0,8,0" />
+                        <TextBlock Text="清空" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </materialDesign:ColorZone>
 
