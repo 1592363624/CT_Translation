@@ -13,7 +13,7 @@ jobs:
         uses: peter-evans/repository-dispatch@v3
         with:
           # 你的 GitHub 用户名/空仓库名（比如：your-name/private-repo-packer）
-          repository: 1592363624/App-Store
+          repository: 1592363624/App-Center
           # 空仓库的 PAT（需和空仓库 Secrets 里的一致，或单独存到本仓库 Secrets）
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           # 事件类型（必须和空仓库工作流里的 types 一致：pack_trigger）
