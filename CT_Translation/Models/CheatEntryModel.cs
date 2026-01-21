@@ -9,6 +9,12 @@ namespace CT_Translation.Models;
 public partial class CheatEntryModel : ObservableObject
 {
     /// <summary>
+    /// 序号 (从1开始)
+    /// </summary>
+    [ObservableProperty]
+    private int _index;
+
+    /// <summary>
     /// 条目 ID
     /// </summary>
     [ObservableProperty]

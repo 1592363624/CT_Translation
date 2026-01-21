@@ -17,7 +17,8 @@ namespace CT_Translation.ViewModels;
 /// </summary>
 public partial class MainViewModel : ObservableObject
 {
-    private readonly ITranslationService _translationService;
+    private readonly IConfigService _configService;
+    private ITranslationService _translationService;
     private XDocument? _currentDoc;
 
     [ObservableProperty]
@@ -29,10 +30,61 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _statusMessage = "就绪";
 
+    [ObservableProperty]
+    private string _logOutput = "";
+
     public MainViewModel()
     {
-        // 使用 Google 翻译服务
-        _translationService = new GoogleTranslationService();
+        _configService = new ConfigService();
+        UpdateTranslationService();
+    }
+
+    private void AppendLog(string message)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss");
+        LogOutput += $"[{timestamp}] {message}{Environment.NewLine}";
+    }
+
+    private void UpdateTranslationService()
+    {
+        if (_translationService != null)
+        {
+            _translationService.OnLog -= AppendLog;
+        }
+
+        if (_configService.Config.SelectedProvider == "OpenAI")
+        {
+            _translationService = new OpenAiTranslationService(_configService.Config.OpenAi);
+        }
+        else
+        {
+            _translationService = new GoogleTranslationService();
+        }
+
+        if (_translationService != null)
+        {
+            _translationService.OnLog += AppendLog;
+        }
+    }
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        var vm = new SettingsViewModel(_configService);
+        var window = new SettingsWindow
+        {
+            DataContext = vm,
+            Owner = Application.Current.MainWindow
+        };
+        
+        if (window.ShowDialog() == true)
+        {
+            // 如果需要，可以在这里处理返回结果，或者因为 ViewModel 共享了 ConfigService，
+            // 且 Save 时已经保存了，这里只需要刷新服务即可。
+        }
+        
+        // 刷新服务实例，以防配置已更改
+        UpdateTranslationService();
     }
 
     /// <summary>
@@ -69,6 +121,7 @@ public partial class MainViewModel : ObservableObject
 
             // 递归查找所有 CheatEntry
             var cheatEntries = _currentDoc.Descendants("CheatEntry");
+            int indexCounter = 1;
             foreach (var entry in cheatEntries)
             {
                 var descNode = entry.Element("Description");
@@ -96,6 +149,7 @@ public partial class MainViewModel : ObservableObject
                     
                     Entries.Add(new CheatEntryModel
                     {
+                        Index = indexCounter++,
                         Id = idNode?.Value ?? "N/A",
                         OriginalDescription = displayValue, // 此时存储的是无引号的内容
                         TranslatedDescription = displayValue, // 默认翻译为原文
@@ -388,9 +442,12 @@ public partial class MainViewModel : ObservableObject
         }
 
         StatusMessage = $"正在批量翻译 {toTranslate.Count} 个唯一文本...";
+        AppendLog($"Starting batch translation for {toTranslate.Count} unique items.");
 
         // 调用批量翻译
         var translations = await _translationService.TranslateBatchAsync(toTranslate);
+
+        AppendLog($"Batch translation completed. Received {translations.Count} results.");
 
         // 回写结果
         int successCount = 0;
@@ -421,5 +478,6 @@ public partial class MainViewModel : ObservableObject
         
         stopwatch.Stop();
         StatusMessage = $"自动汉化完成，共处理 {Entries.Count} 个条目，成功匹配 {successCount} 个，耗时 {stopwatch.Elapsed.TotalSeconds:F2} 秒";
+        AppendLog($"Translation process finished. Matched: {successCount}/{Entries.Count}. Duration: {stopwatch.Elapsed.TotalSeconds:F2}s");
     }
 }

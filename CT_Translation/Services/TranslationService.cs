@@ -2,12 +2,15 @@ namespace CT_Translation.Services;
 
 public interface ITranslationService
 {
+    event Action<string> OnLog;
     Task<string> TranslateAsync(string text, string targetLanguage = "zh-CN");
     Task<Dictionary<string, string>> TranslateBatchAsync(List<string> texts, string targetLanguage = "zh-CN");
 }
 
 public class MockTranslationService : ITranslationService
 {
+    public event Action<string> OnLog;
+
     public Task<string> TranslateAsync(string text, string targetLanguage = "zh-CN")
     {
         // 简单的模拟翻译逻辑

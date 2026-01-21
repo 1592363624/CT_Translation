@@ -17,7 +17,6 @@
         <Folder Include="Services\"/>
         <Folder Include="Src\"/>
         <Folder Include="ViewModels\"/>
-        <Folder Include="Views\"/>
     </ItemGroup>
 
 
@@ -25,6 +24,24 @@
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0"/>
         <PackageReference Include="MaterialDesignThemes" Version="5.3.1-ci1231"/>
         <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1"/>
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <Page Update="Views\MainWindow.xaml">
+        <Generator>MSBuild:Compile</Generator>
+        <XamlRuntime>Wpf</XamlRuntime>
+        <SubType>Designer</SubType>
+      </Page>
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <ApplicationDefinition Include="Views\App.xaml">
+        <Generator>MSBuild:Compile</Generator>
+        <XamlRuntime>Wpf</XamlRuntime>
+        <SubType>Designer</SubType>
+      </ApplicationDefinition>
     </ItemGroup>
 
 </Project>

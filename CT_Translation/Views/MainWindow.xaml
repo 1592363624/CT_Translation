@@ -1,4 +1,4 @@
-﻿<Window x:Class="CT_Translation.MainWindow"
+<Window x:Class="CT_Translation.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -76,7 +76,8 @@
                   materialDesign:DataGridAssist.CellPadding="13 8 8 8"
                   materialDesign:DataGridAssist.ColumnHeaderPadding="8">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="ID" Binding="{Binding Id}" IsReadOnly="True" Width="80" />
+                <DataGridTextColumn Header="序号" Binding="{Binding Index}" IsReadOnly="True" Width="50" />
+                <DataGridTextColumn Header="ID(CT行号)" Binding="{Binding Id}" IsReadOnly="True" Width="90" />
                 
                 <!-- 原始文本，只读 -->
                 <DataGridTextColumn Header="原始描述" Binding="{Binding OriginalDescription}" IsReadOnly="True" Width="*" >
@@ -113,5 +114,18 @@
                 <TextBlock Text="{Binding CurrentFilePath}" Opacity="0.6" FontSize="12" />
             </StatusBarItem>
         </StatusBar>
+        
+        <!-- 日志输出区域 (新增) -->
+        <Expander Grid.Row="1" Header="翻译日志" IsExpanded="False" ExpandDirection="Up" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Margin="20,0,20,0" Background="{DynamicResource MaterialDesignPaper}" BorderBrush="{DynamicResource MaterialDesignDivider}">
+             <TextBox Text="{Binding LogOutput}" 
+                      IsReadOnly="True" 
+                      VerticalScrollBarVisibility="Auto" 
+                      Height="150" 
+                      AcceptsReturn="True" 
+                      TextWrapping="Wrap"
+                      Padding="5"
+                      FontSize="12"
+                      FontFamily="Consolas, Courier New, Monospace" />
+        </Expander>
     </Grid>
 </Window>

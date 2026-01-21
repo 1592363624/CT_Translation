@@ -5,6 +5,7 @@ namespace CT_Translation.Services;
 
 public class GoogleTranslationService : ITranslationService
 {
+    public event Action<string> OnLog;
     private readonly HttpClient _httpClient;
     private const string BaseUrl = "https://translate.googleapis.com/translate_a/single";
 
@@ -47,6 +48,7 @@ public class GoogleTranslationService : ITranslationService
                 // 构造 URL
                 var url = $"{BaseUrl}?client=gtx&sl=auto&tl={targetLanguage}&dt=t&q={Uri.EscapeDataString(combinedText)}";
 
+                OnLog?.Invoke($"[Google] Sending request for batch of {batch.Count} items...");
                 var response = await _httpClient.GetStringAsync(url);
                 var jsonArray = JArray.Parse(response);
 
@@ -84,8 +86,9 @@ public class GoogleTranslationService : ITranslationService
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                OnLog?.Invoke($"[Google] Error translating batch: {ex.Message}");
                 // 批次失败，尝试逐个翻译（降级策略）或者直接返回原文
                 foreach (var item in batch)
                 {
