@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 翻译助手 (Web版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        [v-cloak] { display: none; }
+        body { background-color: #f3f4f6; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="app" v-cloak class="min-h-screen flex flex-col">
+        <!-- 顶部导航栏 -->
+        <header class="bg-white shadow-sm z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-language text-blue-600 text-2xl"></i>
+                    <h1 class="text-xl font-bold text-gray-800">AI 翻译助手</h1>
+                </div>
+                <button @click="showSettings = !showSettings" class="text-gray-500 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-gray-100">
+                    <i class="fa-solid fa-gear text-xl"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- 设置面板 (模态框) -->
+        <div v-if="showSettings" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.self="showSettings = false">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 m-4 animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">设置</h2>
+                    <button @click="showSettings = false" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API 地址</label>
+                        <input type="text" v-model="config.apiUrl" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="https://api.openai.com/v1/chat/completions">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                        <input type="password" v-model="config.apiKey" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="sk-...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">模型 (Model)</label>
+                        <input type="text" v-model="config.model" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2" placeholder="gpt-3.5-turbo">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">系统提示词 (System Prompt)</label>
+                        <textarea v-model="config.systemPrompt" rows="3" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button @click="saveSettings" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        保存并关闭
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col md:flex-row gap-6 h-[calc(100vh-4rem)]">
+            <!-- 输入区 -->
+            <div class="flex-1 flex flex-col bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                    <span class="font-medium text-gray-700">原文</span>
+                    <button @click="inputText = ''" class="text-xs text-gray-500 hover:text-red-500" title="清空">
+                        <i class="fa-solid fa-trash-can"></i> 清空
+                    </button>
+                </div>
+                <textarea 
+                    v-model="inputText" 
+                    class="flex-1 w-full p-4 resize-none focus:outline-none text-gray-800 leading-relaxed text-lg"
+                    placeholder="请输入需要翻译的内容..."
+                ></textarea>
+                <div class="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50">
+                    <span class="text-xs text-gray-400">{{ inputText.length }} 字符</span>
+                    <button 
+                        @click="translate" 
+                        :disabled="loading || !inputText"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-md"
+                    >
+                        <i v-if="loading" class="fa-solid fa-circle-notch fa-spin"></i>
+                        <span v-else>翻译</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 输出区 -->
+            <div class="flex-1 flex flex-col bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+                <div class="bg-blue-50 px-4 py-3 border-b border-blue-100 flex justify-between items-center">
+                    <span class="font-medium text-blue-800">译文</span>
+                    <button @click="copyResult" class="text-xs text-blue-600 hover:text-blue-800" title="复制">
+                        <i class="fa-solid fa-copy"></i> 复制
+                    </button>
+                </div>
+                <div class="flex-1 relative">
+                    <textarea 
+                        readonly 
+                        v-model="outputText" 
+                        class="w-full h-full p-4 resize-none focus:outline-none text-gray-800 leading-relaxed text-lg bg-transparent"
+                        placeholder="翻译结果将显示在这里..."
+                    ></textarea>
+                    
+                    <!-- 错误提示 -->
+                    <div v-if="error" class="absolute inset-x-4 bottom-4 bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2 animate-pulse">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        {{ error }}
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, watch } = Vue;
+
+        createApp({
+            setup() {
+                const showSettings = ref(false);
+                const loading = ref(false);
+                const inputText = ref('');
+                const outputText = ref('');
+                const error = ref('');
+
+                // 默认配置，参考自你的 C# 项目
+                const config = reactive({
+                    apiUrl: 'https://api.openai.com/v1/chat/completions',
+                    apiKey: '',
+                    model: 'gpt-3.5-turbo',
+                    systemPrompt: 'You are a professional translator. Translate the following text to Simplified Chinese directly. Do not add any explanations or extra quotes unless they are part of the original text.'
+                });
+
+                // 加载保存的设置
+                onMounted(() => {
+                    const savedConfig = localStorage.getItem('ai_translator_config');
+                    if (savedConfig) {
+                        Object.assign(config, JSON.parse(savedConfig));
+                    }
+                    
+                    // 如果没有 Key，自动打开设置
+                    if (!config.apiKey) {
+                        showSettings.value = true;
+                    }
+                });
+
+                const saveSettings = () => {
+                    localStorage.setItem('ai_translator_config', JSON.stringify(config));
+                    showSettings.value = false;
+                };
+
+                const copyResult = async () => {
+                    if (outputText.value) {
+                        await navigator.clipboard.writeText(outputText.value);
+                    }
+                };
+
+                const translate = async () => {
+                    if (!inputText.value.trim()) return;
+                    if (!config.apiKey) {
+                        error.value = "请先在设置中配置 API Key";
+                        showSettings.value = true;
+                        return;
+                    }
+
+                    loading.value = true;
+                    error.value = '';
+                    outputText.value = ''; // 清空旧结果
+
+                    try {
+                        const messages = [
+                            { role: "system", content: config.systemPrompt },
+                            { role: "user", content: inputText.value }
+                        ];
+
+                        // 智能处理 URL，参考 C# 逻辑
+                        let url = config.apiUrl.trim();
+                        if (!url.endsWith('/chat/completions') && !url.endsWith('/v1')) {
+                             // 简单处理，如果用户只给了域名
+                             if (url.endsWith('/')) url = url.slice(0, -1);
+                             url += '/v1/chat/completions';
+                        } else if (url.endsWith('/v1')) {
+                            url += '/chat/completions';
+                        }
+
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${config.apiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: config.model,
+                                messages: messages,
+                                temperature: 0.3
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const errData = await response.text();
+                            throw new Error(`API 请求失败: ${response.status} - ${errData}`);
+                        }
+
+                        const data = await response.json();
+                        const result = data.choices?.[0]?.message?.content;
+                        
+                        if (result) {
+                            outputText.value = result.trim();
+                        } else {
+                            throw new Error("API 返回了空内容");
+                        }
+
+                    } catch (e) {
+                        error.value = e.message;
+                        console.error(e);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                return {
+                    showSettings,
+                    config,
+                    inputText,
+                    outputText,
+                    loading,
+                    error,
+                    saveSettings,
+                    translate,
+                    copyResult
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

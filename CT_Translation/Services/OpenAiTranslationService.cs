@@ -9,15 +9,16 @@ namespace CT_Translation.Services;
 
 public class OpenAiTranslationService : ITranslationService
 {
-    public event Action<string> OnLog;
+    public event Action<string>? OnLog;
     private readonly OpenAiConfig _config;
     private readonly HttpClient _httpClient;
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(5); // 控制并发请求数
 
     public OpenAiTranslationService(OpenAiConfig config)
     {
         _config = config;
         _httpClient = new HttpClient();
-        _httpClient.Timeout = TimeSpan.FromSeconds(30);
+        _httpClient.Timeout = TimeSpan.FromSeconds(60);
     }
 
     public async Task<string> TranslateAsync(string text, string targetLanguage = "zh-CN")
@@ -53,25 +54,81 @@ public class OpenAiTranslationService : ITranslationService
         }
     }
 
-    public async Task<Dictionary<string, string>> TranslateBatchAsync(List<string> texts, string targetLanguage = "zh-CN")
+    public async Task<Dictionary<string, string>> TranslateBatchAsync(List<string> texts, IProgress<int>? progress = null, CancellationToken cancellationToken = default, string targetLanguage = "zh-CN")
     {
         var result = new Dictionary<string, string>();
         if (texts == null || texts.Count == 0) return result;
 
-        // 简单的批量处理：每批 20 条，避免 Token 超限
+        int completedCount = 0;
+        progress?.Report(completedCount);
+
+        OnLog?.Invoke($"[OpenAI] {texts.Count} items to translate.");
+
+        // 2. 准备批次
         int batchSize = 20;
-        for (int i = 0; i < texts.Count; i += batchSize)
+        var batches = texts
+            .Select((x, i) => new { Index = i, Value = x })
+            .GroupBy(x => x.Index / batchSize)
+            .Select(x => x.Select(v => v.Value).ToList())
+            .ToList();
+
+        object lockObj = new object();
+
+        // 3. 并发处理
+        var tasks = batches.Select(async batch =>
         {
-            var currentBatch = texts.Skip(i).Take(batchSize).ToList();
-            var batchResult = await TranslateBatchInternalAsync(currentBatch);
-            
-            foreach (var kvp in batchResult)
+            if (cancellationToken.IsCancellationRequested) return;
+
+            await _semaphore.WaitAsync(cancellationToken);
+            try
             {
-                result[kvp.Key] = kvp.Value;
+                var batchResult = await TranslateBatchWithRetryAsync(batch, cancellationToken);
+                
+                lock (lockObj)
+                {
+                    foreach (var kvp in batchResult)
+                    {
+                        result[kvp.Key] = kvp.Value;
+                    }
+                    completedCount += batch.Count;
+                    progress?.Report(completedCount);
+                }
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+
+        return result;
+    }
+
+    private async Task<Dictionary<string, string>> TranslateBatchWithRetryAsync(List<string> texts, CancellationToken cancellationToken)
+    {
+        int maxRetries = 3;
+        int delay = 1000;
+
+        for (int i = 0; i < maxRetries; i++)
+        {
+            if (cancellationToken.IsCancellationRequested) break;
+            try
+            {
+                return await TranslateBatchInternalAsync(texts);
+            }
+            catch (Exception ex)
+            {
+                OnLog?.Invoke($"[OpenAI] Batch failed (Attempt {i + 1}/{maxRetries}): {ex.Message}");
+                if (i == maxRetries - 1) break;
+                await Task.Delay(delay * (i + 1), cancellationToken);
             }
         }
 
-        return result;
+        // 所有重试失败，返回原文
+        var fallback = new Dictionary<string, string>();
+        foreach (var t in texts) fallback[t] = t;
+        return fallback;
     }
 
     private async Task<Dictionary<string, string>> TranslateBatchInternalAsync(List<string> texts)
@@ -99,57 +156,37 @@ public class OpenAiTranslationService : ITranslationService
             temperature = 0.1 // 低温度以保证格式稳定
         };
 
-        try
+        OnLog?.Invoke($"[OpenAI] Sending batch request ({texts.Count} items)...");
+        var response = await SendRequestAsync(requestBody);
+        var content = response?.Choices?.FirstOrDefault()?.Message?.Content?.Trim();
+
+        if (!string.IsNullOrEmpty(content))
         {
-            OnLog?.Invoke($"[OpenAI] Sending batch request ({texts.Count} items)...");
-            var response = await SendRequestAsync(requestBody);
-            var content = response?.Choices?.FirstOrDefault()?.Message?.Content?.Trim();
+            // 清理可能的 Markdown 标记
+            content = content.Replace("```json", "").Replace("```", "").Trim();
+            
+            // 尝试修复常见 JSON 格式错误
+            if (!content.StartsWith("[")) content = content.Substring(content.IndexOf('['));
+            if (!content.EndsWith("]")) content = content.Substring(0, content.LastIndexOf(']') + 1);
 
-            if (!string.IsNullOrEmpty(content))
+            var translatedTexts = JsonSerializer.Deserialize<List<string>>(content);
+            if (translatedTexts != null && translatedTexts.Count == texts.Count)
             {
-                // 清理可能的 Markdown 标记
-                content = content.Replace("```json", "").Replace("```", "").Trim();
-                
-                OnLog?.Invoke($"[OpenAI] Received response, length: {content.Length}");
-
-                var translatedTexts = JsonSerializer.Deserialize<List<string>>(content);
-                if (translatedTexts != null && translatedTexts.Count == texts.Count)
+                for (int j = 0; j < texts.Count; j++)
                 {
-                    for (int j = 0; j < texts.Count; j++)
-                    {
-                        result[texts[j]] = translatedTexts[j];
-                    }
-                    OnLog?.Invoke($"[OpenAI] Batch parsed successfully.");
-                    return result;
+                    result[texts[j]] = translatedTexts[j];
                 }
-                else
-                {
-                     OnLog?.Invoke($"[OpenAI] Batch parsing mismatch: Sent {texts.Count}, Received {translatedTexts?.Count ?? 0}");
-                }
+                return result;
             }
             else
             {
-                 OnLog?.Invoke($"[OpenAI] Received empty content.");
+                 throw new Exception($"Batch parsing mismatch: Sent {texts.Count}, Received {translatedTexts?.Count ?? 0}");
             }
         }
-        catch (Exception ex)
+        else
         {
-            OnLog?.Invoke($"[OpenAI] Batch processing failed: {ex.Message}");
-            // 批量失败，尝试逐个翻译
-            // 或者直接返回原文
+             throw new Exception("Received empty content from API.");
         }
-
-        // 如果批量失败，回退到原文
-        OnLog?.Invoke($"[OpenAI] Fallback to original text for this batch.");
-        foreach (var text in texts)
-        {
-            if (!result.ContainsKey(text))
-            {
-                result[text] = text; 
-            }
-        }
-
-        return result;
     }
 
     private async Task<OpenAiResponse?> SendRequestAsync(object requestBody)

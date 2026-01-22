@@ -18,8 +18,9 @@ namespace CT_Translation.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly IConfigService _configService;
-    private ITranslationService _translationService;
+    private ITranslationService _translationService = null!;
     private XDocument? _currentDoc;
+    private CancellationTokenSource? _cts;
 
     [ObservableProperty]
     private string _currentFilePath = string.Empty;
@@ -32,6 +33,18 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string _logOutput = "";
+
+    [ObservableProperty]
+    private bool _isTranslating;
+
+    [ObservableProperty]
+    private int _progressValue;
+
+    [ObservableProperty]
+    private int _progressMax;
+
+    [ObservableProperty]
+    private string _progressText = "";
 
     public MainViewModel()
     {
@@ -427,57 +440,99 @@ public partial class MainViewModel : ObservableObject
     private async Task AutoTranslate()
     {
         if (Entries.Count == 0) return;
+        if (IsTranslating) return;
 
-        StatusMessage = "正在收集需要翻译的条目...";
-        
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        
-        // 收集所有需要翻译的文本
-        var toTranslate = Entries.Select(e => e.OriginalDescription).Distinct().ToList();
-        
-        if (toTranslate.Count == 0)
+        try
         {
-            StatusMessage = "没有需要翻译的条目";
-            return;
-        }
-
-        StatusMessage = $"正在批量翻译 {toTranslate.Count} 个唯一文本...";
-        AppendLog($"Starting batch translation for {toTranslate.Count} unique items.");
-
-        // 调用批量翻译
-        var translations = await _translationService.TranslateBatchAsync(toTranslate);
-
-        AppendLog($"Batch translation completed. Received {translations.Count} results.");
-
-        // 回写结果
-        int successCount = 0;
-        foreach (var entry in Entries)
-        {
-            if (translations.TryGetValue(entry.OriginalDescription, out var translatedText))
+            IsTranslating = true;
+            _cts = new CancellationTokenSource();
+            
+            StatusMessage = "正在收集需要翻译的条目...";
+            
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            // 收集所有需要翻译的文本
+            var toTranslate = Entries.Select(e => e.OriginalDescription).Distinct().ToList();
+            
+            if (toTranslate.Count == 0)
             {
-                // 修复引号问题：将中文全角引号替换回英文半角引号
-                // 虽然我们现在只处理内容，但翻译结果偶尔还是可能带上奇怪的标点，保险起见还是处理一下
-                if (!string.IsNullOrEmpty(translatedText))
-                {
-                    // 移除可能被翻译引擎误加的外层引号（不管是中文还是英文）
-                    // 因为我们现在是“纯内容”翻译，不需要翻译带回引号
-                    translatedText = translatedText.Trim();
-                    if (translatedText.StartsWith("\"") && translatedText.EndsWith("\""))
-                        translatedText = translatedText.Substring(1, translatedText.Length - 2);
-                    else if (translatedText.StartsWith("“") && translatedText.EndsWith("”"))
-                        translatedText = translatedText.Substring(1, translatedText.Length - 2);
-                        
-                    // 替换中间可能出现的中文引号
-                    translatedText = translatedText.Replace("“", "\"").Replace("”", "\"");
-                }
-                
-                entry.TranslatedDescription = translatedText;
-                successCount++;
+                StatusMessage = "没有需要翻译的条目";
+                return;
             }
+
+            ProgressMax = toTranslate.Count;
+            ProgressValue = 0;
+            ProgressText = $"0/{ProgressMax}";
+
+            StatusMessage = $"正在批量翻译 {toTranslate.Count} 个唯一文本...";
+            AppendLog($"Starting batch translation for {toTranslate.Count} unique items.");
+
+            var progress = new Progress<int>(p => 
+            {
+                ProgressValue = p;
+                ProgressText = $"{p}/{ProgressMax}";
+            });
+
+            // 调用批量翻译
+            var translations = await _translationService.TranslateBatchAsync(toTranslate, progress, _cts.Token);
+
+            AppendLog($"Batch translation completed. Received {translations.Count} results.");
+
+            // 回写结果
+            int successCount = 0;
+            foreach (var entry in Entries)
+            {
+                if (translations.TryGetValue(entry.OriginalDescription, out var translatedText))
+                {
+                    // 修复引号问题：将中文全角引号替换回英文半角引号
+                    // 虽然我们现在只处理内容，但翻译结果偶尔还是可能带上奇怪的标点，保险起见还是处理一下
+                    if (!string.IsNullOrEmpty(translatedText))
+                    {
+                        // 移除可能被翻译引擎误加的外层引号（不管是中文还是英文）
+                        // 因为我们现在是“纯内容”翻译，不需要翻译带回引号
+                        translatedText = translatedText.Trim();
+                        if (translatedText.StartsWith("\"") && translatedText.EndsWith("\""))
+                            translatedText = translatedText.Substring(1, translatedText.Length - 2);
+                        else if (translatedText.StartsWith("“") && translatedText.EndsWith("”"))
+                            translatedText = translatedText.Substring(1, translatedText.Length - 2);
+                            
+                        // 替换中间可能出现的中文引号
+                        translatedText = translatedText.Replace("“", "\"").Replace("”", "\"");
+                    }
+                    
+                    entry.TranslatedDescription = translatedText;
+                    successCount++;
+                }
+            }
+            
+            stopwatch.Stop();
+            StatusMessage = $"自动汉化完成，共处理 {Entries.Count} 个条目，成功匹配 {successCount} 个，耗时 {stopwatch.Elapsed.TotalSeconds:F2} 秒";
+            AppendLog($"Translation process finished. Matched: {successCount}/{Entries.Count}. Duration: {stopwatch.Elapsed.TotalSeconds:F2}s");
         }
-        
-        stopwatch.Stop();
-        StatusMessage = $"自动汉化完成，共处理 {Entries.Count} 个条目，成功匹配 {successCount} 个，耗时 {stopwatch.Elapsed.TotalSeconds:F2} 秒";
-        AppendLog($"Translation process finished. Matched: {successCount}/{Entries.Count}. Duration: {stopwatch.Elapsed.TotalSeconds:F2}s");
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "翻译已取消";
+            AppendLog("Translation cancelled by user.");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"翻译出错: {ex.Message}";
+            AppendLog($"Error: {ex.Message}");
+            MessageBox.Show($"翻译过程中发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsTranslating = false;
+            _cts?.Dispose();
+            _cts = null;
+            ProgressValue = 0;
+            ProgressText = "";
+        }
+    }
+
+    [RelayCommand]
+    private void Cancel()
+    {
+        _cts?.Cancel();
     }
 }

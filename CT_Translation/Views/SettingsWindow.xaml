@@ -5,63 +5,233 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="设置" Height="700" Width="600"
+        Title="设置" Height="1000" Width="900"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         Style="{StaticResource MaterialDesignWindow}"
-        Background="{DynamicResource MaterialDesignPaper}"
-        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-        TextElement.FontSize="14">
-    
-    <Grid Margin="16">
+        Background="#0F172A"
+        TextElement.Foreground="#E2E8F0"
+        TextElement.FontSize="14"
+        FontFamily="Microsoft YaHei UI">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="5" GlassFrameThickness="0" CornerRadius="0" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- 窗口控制按钮样式 (从 MainWindow 复制或引用) -->
+        <Style x:Key="WindowControlButtonStyle" TargetType="Button">
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1E293B"/>
+                    <Setter Property="Foreground" Value="#38BDF8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WindowCloseButtonStyle" TargetType="Button" BasedOn="{StaticResource WindowControlButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#EF4444"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 复用主窗口的 TechButtonStyle -->
+        <Style x:Key="TechButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1E293B"/>
+                    <Setter Property="Foreground" Value="#38BDF8"/>
+                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect Color="#38BDF8" BlurRadius="8" ShadowDepth="0" Opacity="0.4"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PrimaryTechButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="4"/>
+            <Setter Property="Background" Value="#0EA5E9"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#38BDF8"/>
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect Color="#38BDF8" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 暗色 GroupBox 样式 -->
+        <Style x:Key="TechGroupBox" TargetType="GroupBox" BasedOn="{StaticResource MaterialDesignCardGroupBox}">
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Effect" Value="{x:Null}"/>
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" FontWeight="Bold" Foreground="#38BDF8" Margin="8,0"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 暗色 TextBox 样式 -->
+        <Style x:Key="TechTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="materialDesign:TextFieldAssist.UnderlineBrush" Value="#38BDF8"/>
+            <Setter Property="CaretBrush" Value="#38BDF8"/>
+        </Style>
+        
+        <!-- 暗色 ComboBox 样式 -->
+         <Style x:Key="TechComboBox" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid>
+        <!-- 背景装饰 -->
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#0F172A" Offset="0"/>
+                <GradientStop Color="#020617" Offset="1"/>
+            </LinearGradientBrush>
+        </Grid.Background>
+
         <Grid.RowDefinitions>
+            <RowDefinition Height="32" /> <!-- 自定义标题栏 -->
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0">
-            <!-- 服务选择 -->
-            <GroupBox Header="翻译服务提供商" Style="{StaticResource MaterialDesignCardGroupBox}" Margin="0,0,0,16">
-                <StackPanel Margin="8">
-                    <TextBlock Text="选择要使用的翻译服务：" Margin="0,0,0,8" Opacity="0.7"/>
-                    <ComboBox SelectedValue="{Binding SelectedProvider}" SelectedValuePath="Tag" Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                        <ComboBoxItem Content="Google 翻译 (免费接口)" Tag="GoogleFree" />
-                        <ComboBoxItem Content="OpenAI 兼容接口 (OpenAI, DeepSeek, Kimi等)" Tag="OpenAI" />
-                    </ComboBox>
+        <!-- 自定义标题栏 -->
+        <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0" IsHitTestVisible="False">
+                <materialDesign:PackIcon Kind="CogOutline" Width="20" Height="20" Foreground="#38BDF8" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="翻译设置" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Foreground="#F8FAFC"/>
+            </StackPanel>
+            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <Button Style="{StaticResource WindowCloseButtonStyle}" Click="CloseWindow_Click">
+                    <materialDesign:PackIcon Kind="WindowClose" Width="16" Height="16"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+        
+        <Grid Grid.Row="1" Margin="24,0,24,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- 标题 -->
+                <RowDefinition Height="*" />    <!-- 内容 -->
+                <RowDefinition Height="Auto" /> <!-- 按钮 -->
+            </Grid.RowDefinitions>
+
+            <!-- 标题栏 (移除，因为已经移到顶部) -->
+            <!--
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                <materialDesign:PackIcon Kind="CogOutline" Width="24" Height="24" Foreground="#38BDF8" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <TextBlock Text="翻译设置" FontSize="20" FontWeight="Bold" Foreground="#F8FAFC"/>
+            </StackPanel>
+            -->
+            <!-- 稍微留点空隙 -->
+            <Border Height="24" />
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
+                <StackPanel>
+                    <!-- 服务选择 -->
+                    <GroupBox Header="翻译服务提供商" Style="{StaticResource TechGroupBox}" Margin="0,0,0,24">
+                        <StackPanel Margin="8">
+                            <TextBlock Text="选择要使用的翻译服务：" Margin="0,0,0,8" Foreground="#94A3B8"/>
+                            <ComboBox SelectedValue="{Binding SelectedProvider}" SelectedValuePath="Tag" Style="{StaticResource TechComboBox}">
+                                <ComboBoxItem Content="Google 翻译 (免费接口)" Tag="GoogleFree" Foreground="#E2E8F0"/>
+                                <ComboBoxItem Content="OpenAI 兼容接口 (OpenAI, DeepSeek, Kimi等)" Tag="OpenAI" Foreground="#E2E8F0"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <!-- OpenAI 配置 -->
+                    <GroupBox Header="OpenAI / 兼容接口配置" Style="{StaticResource TechGroupBox}">
+                        <StackPanel Margin="8">
+                            <TextBlock Text="API 地址 (Base URL)" Margin="0,0,0,6" Foreground="#CBD5E1"/>
+                            <TextBox Text="{Binding OpenAiApiUrl}" 
+                                     materialDesign:HintAssist.Hint="例如: https://api.openai.com/v1/chat/completions" 
+                                     Style="{StaticResource TechTextBox}" 
+                                     Margin="0,0,0,16" />
+
+                            <TextBlock Text="API Key" Margin="0,0,0,6" Foreground="#CBD5E1"/>
+                            <TextBox Text="{Binding OpenAiApiKey, UpdateSourceTrigger=PropertyChanged}" 
+                                     materialDesign:HintAssist.Hint="sk-..." 
+                                     Style="{StaticResource TechTextBox}" 
+                                     Margin="0,0,0,16" />
+                            
+                            <TextBlock Text="模型名称 (Model)" Margin="0,0,0,6" Foreground="#CBD5E1"/>
+                            <TextBox Text="{Binding OpenAiModel}" 
+                                     materialDesign:HintAssist.Hint="例如: gpt-3.5-turbo, deepseek-chat" 
+                                     Style="{StaticResource TechTextBox}" 
+                                     Margin="0,0,0,16" />
+
+                            <TextBlock Text="自定义提示词 (System Prompt)" Margin="0,0,0,6" Foreground="#CBD5E1"/>
+                            <TextBox Text="{Binding CustomSystemPrompt}" 
+                                     materialDesign:HintAssist.Hint="例如: You are a professional game translator." 
+                                     Style="{StaticResource TechTextBox}" 
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     Height="200"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Margin="0,0,0,8" />
+                        </StackPanel>
+                    </GroupBox>
                 </StackPanel>
-            </GroupBox>
+            </ScrollViewer>
 
-            <!-- OpenAI 配置 -->
-            <GroupBox Header="OpenAI / 兼容接口配置" Style="{StaticResource MaterialDesignCardGroupBox}">
-                <StackPanel Margin="8">
-                    <TextBlock Text="API 地址 (Base URL)" Margin="0,0,0,4" />
-                    <TextBox Text="{Binding OpenAiApiUrl}" materialDesign:HintAssist.Hint="例如: https://api.openai.com/v1/chat/completions" Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,12" />
-
-                    <TextBlock Text="API Key" Margin="0,0,0,4" />
-                    <TextBox Text="{Binding OpenAiApiKey, UpdateSourceTrigger=PropertyChanged}" materialDesign:HintAssist.Hint="sk-..." Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,12" />
-                    
-                    <TextBlock Text="模型名称 (Model)" Margin="0,0,0,4" />
-                    <TextBox Text="{Binding OpenAiModel}" materialDesign:HintAssist.Hint="例如: gpt-3.5-turbo, deepseek-chat" Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="0,0,0,12" />
-
-                    <TextBlock Text="自定义提示词 (System Prompt)" Margin="0,0,0,4" />
-                    <TextBox Text="{Binding CustomSystemPrompt}" 
-                             materialDesign:HintAssist.Hint="例如: You are a professional game translator." 
-                             Style="{StaticResource MaterialDesignOutlinedTextBox}" 
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             Height="80"
-                             VerticalScrollBarVisibility="Auto"
-                             Margin="0,0,0,12" />
-                </StackPanel>
-            </GroupBox>
-        </StackPanel>
-
-        <!-- 底部按钮 -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button Content="取消" Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" 
-                    Style="{StaticResource MaterialDesignFlatButton}" Margin="0,0,8,0" />
-            <Button Content="保存" Command="{Binding SaveCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" 
-                    Style="{StaticResource MaterialDesignRaisedButton}" />
-        </StackPanel>
+            <!-- 底部按钮 -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+                <Button Content="取消" Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" 
+                        Style="{StaticResource TechButtonStyle}" Margin="0,0,12,0" />
+                <Button Content="保存配置" Command="{Binding SaveCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" 
+                        Style="{StaticResource PrimaryTechButtonStyle}" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

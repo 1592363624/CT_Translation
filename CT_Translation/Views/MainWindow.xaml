@@ -6,126 +6,372 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:CT_Translation.ViewModels"
         mc:Ignorable="d"
-        Title="CT 汉化工具"
-        Width="1000"
-        Height="700"
+        Title="CT 汉化助手"
+        Width="1200"
+        Height="800"
         AllowDrop="True"
         Drop="Window_Drop"
         Style="{StaticResource MaterialDesignWindow}"
-        Background="{DynamicResource MaterialDesignPaper}"
+        Background="#0F172A" 
         TextElement.FontSize="14"
-        TextElement.FontWeight="Medium"
-        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-        WindowStartupLocation="CenterScreen">
+        TextElement.FontWeight="Regular"
+        TextElement.Foreground="#E2E8F0"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Microsoft YaHei UI">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="5" GlassFrameThickness="0" CornerRadius="0" />
+    </WindowChrome.WindowChrome>
     
     <Window.DataContext>
         <vm:MainViewModel />
     </Window.DataContext>
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        
+        <!-- 窗口控制按钮样式 -->
+        <Style x:Key="WindowControlButtonStyle" TargetType="Button">
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1E293B"/>
+                    <Setter Property="Foreground" Value="#38BDF8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WindowCloseButtonStyle" TargetType="Button" BasedOn="{StaticResource WindowControlButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#EF4444"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 定义暗色科技风按钮样式 -->
+        <Style x:Key="TechButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1E293B"/>
+                    <Setter Property="Foreground" Value="#38BDF8"/>
+                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                    <Setter Property="Effect">
+                         <Setter.Value>
+                             <DropShadowEffect Color="#38BDF8" BlurRadius="8" ShadowDepth="0" Opacity="0.4"/>
+                         </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PrimaryTechButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Padding" Value="20,0"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="4"/>
+            <Setter Property="Background" Value="#0EA5E9"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers>
+                 <Trigger Property="IsMouseOver" Value="True">
+                     <Setter Property="Background" Value="#38BDF8"/>
+                     <Setter Property="Effect">
+                         <Setter.Value>
+                             <DropShadowEffect Color="#38BDF8" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/>
+                         </Setter.Value>
+                     </Setter>
+                 </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="32" /> <!-- 自定义标题栏 -->
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- 工具栏 -->
-        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock VerticalAlignment="Center" Margin="0,0,20,0" Text="CT 汉化助手" FontSize="20" FontWeight="Bold"/>
-                
-                <Button Command="{Binding OpenFileCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="打开 .CT 文件">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="FolderOpen" Margin="0,0,8,0" />
-                        <TextBlock Text="打开" />
-                    </StackPanel>
-                </Button>
+        <!-- 背景装饰：模拟蜂窝科技感 (简化为线条或渐变) -->
+        <Grid Grid.RowSpan="4" IsHitTestVisible="False" Panel.ZIndex="-1">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#0F172A" Offset="0"/>
+                    <GradientStop Color="#020617" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+            <!-- 顶部装饰线 -->
+            <Border VerticalAlignment="Top" Height="2" Background="#38BDF8" Opacity="0.5" Margin="0,32,0,0">
+                 <Border.Effect>
+                     <DropShadowEffect Color="#38BDF8" BlurRadius="10" ShadowDepth="0"/>
+                 </Border.Effect>
+            </Border>
+        </Grid>
 
-                <Button Command="{Binding AutoTranslateCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="自动翻译所有条目">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="Translate" Margin="0,0,8,0" />
-                        <TextBlock Text="自动翻译" />
-                    </StackPanel>
+        <!-- 自定义标题栏 -->
+        <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0" IsHitTestVisible="False">
+                <materialDesign:PackIcon Kind="HexagonOutline" Width="20" Height="20" Foreground="#38BDF8" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="CT 汉化助手" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Foreground="#F8FAFC"/>
+            </StackPanel>
+            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <Button Style="{StaticResource WindowControlButtonStyle}" Click="MinimizeWindow_Click">
+                    <materialDesign:PackIcon Kind="WindowMinimize" Width="16" Height="16"/>
                 </Button>
-
-                <Button Command="{Binding SaveFileCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="保存为新文件">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="ContentSave" Margin="0,0,8,0" />
-                        <TextBlock Text="保存" />
-                    </StackPanel>
+                <Button Style="{StaticResource WindowControlButtonStyle}" Click="MaximizeWindow_Click">
+                    <materialDesign:PackIcon Kind="WindowMaximize" Width="16" Height="16"/>
                 </Button>
-
-                <Button Command="{Binding ClearCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="清空所有内容">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="Delete" Margin="0,0,8,0" />
-                        <TextBlock Text="清空" />
-                    </StackPanel>
-                </Button>
-
-                <Button Command="{Binding OpenSettingsCommand}" Style="{StaticResource MaterialDesignFlatLightButton}" Margin="0,0,8,0" ToolTip="翻译设置">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="Cog" Margin="0,0,8,0" />
-                        <TextBlock Text="设置" />
-                    </StackPanel>
+                <Button Style="{StaticResource WindowCloseButtonStyle}" Click="CloseWindow_Click">
+                    <materialDesign:PackIcon Kind="WindowClose" Width="16" Height="16"/>
                 </Button>
             </StackPanel>
-        </materialDesign:ColorZone>
+        </Grid>
 
-        <!-- 内容区域 -->
-        <DataGrid Grid.Row="1" ItemsSource="{Binding Entries}" AutoGenerateColumns="False" CanUserAddRows="False" Margin="10"
-                  materialDesign:DataGridAssist.CellPadding="13 8 8 8"
-                  materialDesign:DataGridAssist.ColumnHeaderPadding="8">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="序号" Binding="{Binding Index}" IsReadOnly="True" Width="50" />
-                <DataGridTextColumn Header="ID(CT行号)" Binding="{Binding Id}" IsReadOnly="True" Width="90" />
-                
-                <!-- 原始文本，只读 -->
-                <DataGridTextColumn Header="原始描述" Binding="{Binding OriginalDescription}" IsReadOnly="True" Width="*" >
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="TextWrapping" Value="Wrap" />
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
+        <!-- 顶部导航栏：深色卡片 (移动到 Row 1，并移除标题) -->
+        <materialDesign:Card Grid.Row="1" Margin="16,16,16,8" Padding="8" UniformCornerRadius="8" Background="#1E293B" BorderBrush="#334155" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                <!-- 翻译文本，可编辑 -->
-                <DataGridTextColumn Header="翻译后描述" Binding="{Binding TranslatedDescription, UpdateSourceTrigger=PropertyChanged}" Width="*" >
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="TextWrapping" Value="Wrap" />
-                            <Setter Property="Foreground" Value="{DynamicResource PrimaryHueMidBrush}" />
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                    <DataGridTextColumn.EditingElementStyle>
-                        <Style TargetType="TextBox">
-                            <Setter Property="TextWrapping" Value="Wrap" />
-                        </Style>
-                    </DataGridTextColumn.EditingElementStyle>
-                </DataGridTextColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+                <!-- 主要操作区 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Command="{Binding OpenFileCommand}" Style="{StaticResource TechButtonStyle}" ToolTip="打开 .CT 文件">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FolderOpenOutline" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="打开文件" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
 
-        <!-- 状态栏 -->
-        <StatusBar Grid.Row="2" Padding="10,5">
-            <StatusBarItem>
-                <TextBlock Text="{Binding StatusMessage}" />
-            </StatusBarItem>
-            <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="{Binding CurrentFilePath}" Opacity="0.6" FontSize="12" />
-            </StatusBarItem>
-        </StatusBar>
-        
-        <!-- 日志输出区域 (新增) -->
-        <Expander Grid.Row="1" Header="翻译日志" IsExpanded="False" ExpandDirection="Up" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Margin="20,0,20,0" Background="{DynamicResource MaterialDesignPaper}" BorderBrush="{DynamicResource MaterialDesignDivider}">
-             <TextBox Text="{Binding LogOutput}" 
-                      IsReadOnly="True" 
-                      VerticalScrollBarVisibility="Auto" 
-                      Height="150" 
-                      AcceptsReturn="True" 
-                      TextWrapping="Wrap"
-                      Padding="5"
-                      FontSize="12"
-                      FontFamily="Consolas, Courier New, Monospace" />
-        </Expander>
+                    <Button Command="{Binding AutoTranslateCommand}" Style="{StaticResource PrimaryTechButtonStyle}" ToolTip="开始自动翻译">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AutoFix" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="一键汉化" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding CancelCommand}" 
+                            Visibility="{Binding IsTranslating, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Style="{StaticResource TechButtonStyle}" 
+                            Foreground="#EF4444"
+                            BorderBrush="#EF4444"
+                            ToolTip="停止翻译">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="StopCircleOutline" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="停止任务" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- 右侧辅助操作 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Command="{Binding SaveFileCommand}" Style="{StaticResource TechButtonStyle}" ToolTip="保存结果">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ContentSaveOutline" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="保存" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding ClearCommand}" Style="{StaticResource TechButtonStyle}" ToolTip="清空列表" Padding="10,0">
+                         <materialDesign:PackIcon Kind="Broom" Width="20" Height="20" />
+                    </Button>
+
+                    <Button Command="{Binding OpenSettingsCommand}" Style="{StaticResource TechButtonStyle}" ToolTip="设置" Padding="10,0">
+                        <materialDesign:PackIcon Kind="CogOutline" Width="20" Height="20" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+
+        <!-- 主内容区域：深色悬浮卡片 -->
+        <materialDesign:Card Grid.Row="2" Margin="16,8,16,16" UniformCornerRadius="8" Background="#1E293B" BorderBrush="#334155" BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- 表格头部 -->
+                <Border BorderThickness="0,0,0,1" BorderBrush="#334155" Padding="16,12">
+                    <Grid>
+                         <StackPanel Orientation="Horizontal">
+                             <TextBlock Text="翻译列表" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,12,0"/>
+                             <TextBlock Text="{Binding Entries.Count, StringFormat='共 {0} 条'}" Foreground="#64748B" FontSize="12" VerticalAlignment="Bottom"/>
+                         </StackPanel>
+                         
+                         <TextBlock Text="{Binding CurrentFilePath}" HorizontalAlignment="Right" Foreground="#64748B" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="400"/>
+                    </Grid>
+                </Border>
+
+                <!-- DataGrid -->
+                <DataGrid Grid.Row="1" 
+                          ItemsSource="{Binding Entries}" 
+                          AutoGenerateColumns="False" 
+                          CanUserAddRows="False" 
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          HorizontalGridLinesBrush="#334155"
+                          BorderThickness="0"
+                          Background="#1E293B"
+                          RowHeight="48"
+                          Padding="0"
+                          FontSize="13">
+                    
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
+                            <Setter Property="Background" Value="#1E293B"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Foreground" Value="#94A3B8"/>
+                            <Setter Property="Height" Value="40"/>
+                            <Setter Property="Padding" Value="16,0"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="BorderBrush" Value="#334155"/>
+                        </Style>
+                        <Style TargetType="DataGridCell" BasedOn="{StaticResource MaterialDesignDataGridCell}">
+                            <Setter Property="Padding" Value="16,0"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                            <Setter Property="Foreground" Value="#E2E8F0"/>
+                        </Style>
+                        <Style TargetType="DataGridRow" BasedOn="{StaticResource MaterialDesignDataGridRow}">
+                            <Setter Property="Background" Value="#1E293B"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#334155"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#1E3A8A"/> <!-- 深蓝色选中态 -->
+                                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Resources>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding Index}" IsReadOnly="True" Width="60" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}">
+                             <DataGridTextColumn.CellStyle>
+                                <Style TargetType="DataGridCell" BasedOn="{StaticResource MaterialDesignDataGridCell}">
+                                    <Setter Property="Foreground" Value="#64748B"/>
+                                    <Setter Property="Padding" Value="16,0"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="ID" Binding="{Binding Id}" IsReadOnly="True" Width="100">
+                             <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                    <Setter Property="Foreground" Value="#94A3B8"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <!-- 原始文本 -->
+                        <DataGridTemplateColumn Header="原始文本" Width="*" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding OriginalDescription}" TextWrapping="Wrap" VerticalAlignment="Center" LineHeight="20" Foreground="#CBD5E1"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- 翻译文本 -->
+                        <DataGridTemplateColumn Header="翻译文本" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding TranslatedDescription}" TextWrapping="Wrap" VerticalAlignment="Center" LineHeight="20" Foreground="#38BDF8" FontWeight="Medium"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding TranslatedDescription, UpdateSourceTrigger=PropertyChanged}" 
+                                             TextWrapping="Wrap" 
+                                             VerticalContentAlignment="Center"
+                                             Background="#0F172A"
+                                             Foreground="#38BDF8"
+                                             CaretBrush="#38BDF8"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- 日志区域 (折叠在底部) -->
+                <Expander Grid.Row="2" Header="运行日志" IsExpanded="False" BorderBrush="#334155" BorderThickness="0,1,0,0" Foreground="#94A3B8">
+                    <TextBox Text="{Binding LogOutput}" 
+                             IsReadOnly="True" 
+                             Height="120" 
+                             VerticalScrollBarVisibility="Auto" 
+                             AcceptsReturn="True" 
+                             TextWrapping="Wrap"
+                             Padding="16"
+                             FontSize="12"
+                             Foreground="#64748B"
+                             Background="#0F172A"
+                             FontFamily="Consolas, Courier New, Monospace"
+                             BorderThickness="0"/>
+                </Expander>
+            </Grid>
+        </materialDesign:Card>
+
+        <!-- 底部状态栏 -->
+        <Grid Grid.Row="3" Margin="16,0,16,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 状态信息 -->
+            <Border Background="#1E293B" CornerRadius="16" Padding="12,4" BorderBrush="#334155" BorderThickness="1">
+                 <StackPanel Orientation="Horizontal">
+                     <Ellipse Width="8" Height="8" Fill="#10B981" Margin="0,0,8,0" VerticalAlignment="Center">
+                         <Ellipse.Effect>
+                             <DropShadowEffect Color="#10B981" BlurRadius="6" ShadowDepth="0"/>
+                         </Ellipse.Effect>
+                     </Ellipse>
+                     <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                 </StackPanel>
+            </Border>
+
+            <!-- 进度条 -->
+            <Border Grid.Column="1" Margin="16,0" Background="#1E293B" CornerRadius="16" Padding="16,4" Visibility="{Binding IsTranslating, Converter={StaticResource BooleanToVisibilityConverter}}" BorderBrush="#334155" BorderThickness="1">
+                 <Grid>
+                     <ProgressBar Value="{Binding ProgressValue}" Maximum="{Binding ProgressMax}" Height="6" Background="#0F172A" BorderThickness="0" Foreground="#38BDF8"/>
+                     <TextBlock Text="{Binding ProgressText}" HorizontalAlignment="Right" FontSize="11" Foreground="#94A3B8" Margin="0,8,0,0"/>
+                 </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

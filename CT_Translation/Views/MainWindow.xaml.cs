@@ -31,4 +31,29 @@ public partial class MainWindow : Window
             }
         }
     }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2)
+        {
+            MaximizeWindow_Click(sender, e);
+            return;
+        }
+        DragMove();
+    }
+
+    private void MinimizeWindow_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void MaximizeWindow_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
+
+    private void CloseWindow_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
 }

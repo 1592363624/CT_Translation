@@ -5,7 +5,7 @@ namespace CT_Translation.Services;
 
 public class GoogleTranslationService : ITranslationService
 {
-    public event Action<string> OnLog;
+    public event Action<string>? OnLog;
     private readonly HttpClient _httpClient;
     private const string BaseUrl = "https://translate.googleapis.com/translate_a/single";
 
@@ -18,11 +18,11 @@ public class GoogleTranslationService : ITranslationService
 
     public async Task<string> TranslateAsync(string text, string targetLanguage = "zh-CN")
     {
-        var result = await TranslateBatchAsync(new List<string> { text }, targetLanguage);
+        var result = await TranslateBatchAsync(new List<string> { text }, null, default, targetLanguage);
         return result.ContainsKey(text) ? result[text] : text;
     }
 
-    public async Task<Dictionary<string, string>> TranslateBatchAsync(List<string> texts, string targetLanguage = "zh-CN")
+    public async Task<Dictionary<string, string>> TranslateBatchAsync(List<string> texts, IProgress<int>? progress = null, CancellationToken cancellationToken = default, string targetLanguage = "zh-CN")
     {
         var result = new Dictionary<string, string>();
         if (texts == null || texts.Count == 0) return result;
@@ -36,9 +36,12 @@ public class GoogleTranslationService : ITranslationService
         // 这里简单实现：如果合并后长度超过 3000 字符，就拆分。
         
         var batches = CreateBatches(texts, 3000);
+        int processedCount = 0;
         
         foreach (var batch in batches)
         {
+            if (cancellationToken.IsCancellationRequested) break;
+
             try 
             {
                 // 使用特殊的不可见字符或者极少使用的字符组合作为分隔符，防止翻译后丢失
@@ -98,7 +101,10 @@ public class GoogleTranslationService : ITranslationService
             }
             
             // 稍微延时，避免触发限流
-            await Task.Delay(200);
+            await Task.Delay(200, cancellationToken);
+            
+            processedCount += batch.Count;
+            progress?.Report(processedCount);
         }
 
         return result;
