@@ -1,5 +1,6 @@
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
+using CT_Translation.Models;
 
 namespace CT_Translation.Services;
 
@@ -7,13 +8,19 @@ public class GoogleTranslationService : ITranslationService
 {
     public event Action<string>? OnLog;
     private readonly HttpClient _httpClient;
-    private const string BaseUrl = "https://translate.googleapis.com/translate_a/single";
+    private readonly string _baseUrl;
 
-    public GoogleTranslationService()
+    public GoogleTranslationService(GoogleConfig config)
     {
         _httpClient = new HttpClient();
         // 模拟浏览器 User-Agent，防止被轻易拦截
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        
+        _baseUrl = config.BaseUrl;
+        if (string.IsNullOrWhiteSpace(_baseUrl))
+        {
+            _baseUrl = "https://translate.googleapis.com/translate_a/single";
+        }
     }
 
     public async Task<string> TranslateAsync(string text, string targetLanguage = "zh-CN")
@@ -49,7 +56,7 @@ public class GoogleTranslationService : ITranslationService
                 string combinedText = string.Join("\n", batch);
                 
                 // 构造 URL
-                var url = $"{BaseUrl}?client=gtx&sl=auto&tl={targetLanguage}&dt=t&q={Uri.EscapeDataString(combinedText)}";
+                var url = $"{_baseUrl}?client=gtx&sl=auto&tl={targetLanguage}&dt=t&q={Uri.EscapeDataString(combinedText)}";
 
                 OnLog?.Invoke($"[Google] Sending request for batch of {batch.Count} items...");
                 var response = await _httpClient.GetStringAsync(url);

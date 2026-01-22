@@ -69,9 +69,13 @@ public partial class MainViewModel : ObservableObject
         {
             _translationService = new OpenAiTranslationService(_configService.Config.OpenAi);
         }
+        else if (_configService.Config.SelectedProvider == "Tencent")
+        {
+            _translationService = new TencentTranslationService(_configService.Config.Tencent);
+        }
         else
         {
-            _translationService = new GoogleTranslationService();
+            _translationService = new GoogleTranslationService(_configService.Config.Google);
         }
 
         if (_translationService != null)

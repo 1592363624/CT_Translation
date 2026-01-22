@@ -4,8 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:converters="clr-namespace:CT_Translation.Converters"
         mc:Ignorable="d"
-        Title="设置" Height="1000" Width="900"
+        Title="设置" Height="900" Width="900"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
         Style="{StaticResource MaterialDesignWindow}"
@@ -19,6 +20,9 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter" />
+
         <!-- 窗口控制按钮样式 (从 MainWindow 复制或引用) -->
         <Style x:Key="WindowControlButtonStyle" TargetType="Button">
             <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
@@ -186,12 +190,68 @@
                             <ComboBox SelectedValue="{Binding SelectedProvider}" SelectedValuePath="Tag" Style="{StaticResource TechComboBox}">
                                 <ComboBoxItem Content="Google 翻译 (免费接口)" Tag="GoogleFree" Foreground="#E2E8F0"/>
                                 <ComboBoxItem Content="OpenAI 兼容接口 (OpenAI, DeepSeek, Kimi等)" Tag="OpenAI" Foreground="#E2E8F0"/>
+                                <ComboBoxItem Content="腾讯云机器翻译 (官方 API)" Tag="Tencent" Foreground="#E2E8F0"/>
                             </ComboBox>
                         </StackPanel>
                     </GroupBox>
 
+                    <!-- Google 配置 -->
+                    <GroupBox Header="Google 翻译配置" Style="{StaticResource TechGroupBox}" Margin="0,0,0,24" 
+                              Visibility="{Binding SelectedProvider, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=GoogleFree}">
+                        <StackPanel Margin="8">
+                             <TextBlock Text="API 地址 (Base URL)" Margin="0,0,0,6" Foreground="#CBD5E1"/>
+                             <TextBox Text="{Binding GoogleBaseUrl}" 
+                                      materialDesign:HintAssist.Hint="默认: https://translate.googleapis.com/translate_a/single" 
+                                      Style="{StaticResource TechTextBox}" 
+                                      Margin="0,0,0,8" />
+                             <TextBlock Text="* 在中国大陆使用默认地址通常需要 VPN。如果您有镜像站地址，请在此修改。" FontSize="11" Foreground="#64748B" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </GroupBox>
+                    
+                    <!-- 腾讯云配置 -->
+                    <GroupBox Header="腾讯云配置 (TMT)" Style="{StaticResource TechGroupBox}" Margin="0,0,0,24" 
+                              Visibility="{Binding SelectedProvider, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Tencent}">
+                        <StackPanel Margin="8">
+                             <TextBlock Text="SecretId" Margin="0,0,0,6" Foreground="#CBD5E1"/>
+                             <TextBox Text="{Binding TencentSecretId}" 
+                                      materialDesign:HintAssist.Hint="腾讯云 API 密钥 ID" 
+                                      Style="{StaticResource TechTextBox}" 
+                                      Margin="0,0,0,16" />
+                             
+                             <TextBlock Text="SecretKey" Margin="0,0,0,6" Foreground="#CBD5E1"/>
+                             <TextBox Text="{Binding TencentSecretKey}" 
+                                      materialDesign:HintAssist.Hint="腾讯云 API 密钥 Key" 
+                                      Style="{StaticResource TechTextBox}" 
+                                      Margin="0,0,0,8" />
+                             
+                             <TextBlock Text="* 腾讯交互翻译(TranSmart)核心技术即为腾讯云机器翻译。请前往腾讯云控制台获取 API 密钥 (每月有免费额度)。" FontSize="11" Foreground="#64748B" TextWrapping="Wrap"/>
+                             
+                             <!-- 申请指引 -->
+                             <Border Background="#1E293B" BorderBrush="#334155" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,12,0,0">
+                                 <StackPanel>
+                                     <TextBlock Text="如何获取腾讯云密钥？" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,8"/>
+                                     <TextBlock Text="1. 点击下方按钮，登录腾讯云控制台 (访问管理 - API 密钥)。" FontSize="12" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                     <TextBlock Text="2. 新建或复制现有的 SecretId 和 SecretKey。" FontSize="12" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                     <TextBlock Text="3. 确保您的账号已开通机器翻译服务 (每月送500万字符)。" FontSize="12" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                     
+                                     <Button Style="{StaticResource TechButtonStyle}" 
+                                             Command="{Binding OpenUrlCommand}" 
+                                             CommandParameter="https://console.cloud.tencent.com/cam/capi"
+                                             HorizontalAlignment="Left"
+                                             Height="30" Padding="12,0">
+                                         <StackPanel Orientation="Horizontal">
+                                             <materialDesign:PackIcon Kind="LinkVariant" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                             <TextBlock Text="前往腾讯云获取密钥" FontSize="12" VerticalAlignment="Center"/>
+                                         </StackPanel>
+                                     </Button>
+                                 </StackPanel>
+                             </Border>
+                        </StackPanel>
+                    </GroupBox>
+
                     <!-- OpenAI 配置 -->
-                    <GroupBox Header="OpenAI / 兼容接口配置" Style="{StaticResource TechGroupBox}">
+                    <GroupBox Header="OpenAI / 兼容接口配置" Style="{StaticResource TechGroupBox}"
+                              Visibility="{Binding SelectedProvider, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=OpenAI}">
                         <StackPanel Margin="8">
                             <TextBlock Text="API 地址 (Base URL)" Margin="0,0,0,6" Foreground="#CBD5E1"/>
                             <TextBox Text="{Binding OpenAiApiUrl}" 
