@@ -4,7 +4,10 @@ CT_Translation 用于将CT的其他语言翻译为中文。
 
 ## 计划
 
-- [ ] 支持AI翻译接口
+- [x] 支持AI翻译接口
+- [x] 支持腾讯交互式翻译接口
+
+# 下载地址:https://github.com/1592363624/App-Center
 
 ## 📞 联系作者
 
