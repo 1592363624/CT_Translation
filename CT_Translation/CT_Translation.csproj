@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <UseWPF>true</UseWPF>
         <LangVersion>default</LangVersion>
-        <AssemblyVersion>1.0.0</AssemblyVersion>
+        <AssemblyVersion>1.0.1</AssemblyVersion>
         <TargetFramework>net10.0-windows</TargetFramework>
         <ApplicationIcon>Src\logo.ico</ApplicationIcon>
     </PropertyGroup>
