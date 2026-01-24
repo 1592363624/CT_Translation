@@ -328,7 +328,19 @@
                 </DataGrid>
 
                 <!-- 日志区域 (折叠在底部) -->
-                <Expander Grid.Row="2" Header="运行日志" IsExpanded="False" BorderBrush="#334155" BorderThickness="0,1,0,0" Foreground="#94A3B8">
+                <Expander Grid.Row="2" IsExpanded="{Binding IsLogExpanded}" BorderBrush="#334155" BorderThickness="0,1,0,0">
+                    <Expander.Style>
+                        <Style TargetType="Expander">
+                            <Setter Property="Header" Value="运行日志"/>
+                            <Setter Property="Foreground" Value="#94A3B8"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsErrorState}" Value="True">
+                                    <Setter Property="Header" Value="运行日志 (发生错误)"/>
+                                    <Setter Property="Foreground" Value="#EF4444"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Expander.Style>
                     <TextBox Text="{Binding LogOutput}" 
                              IsReadOnly="True" 
                              Height="120" 

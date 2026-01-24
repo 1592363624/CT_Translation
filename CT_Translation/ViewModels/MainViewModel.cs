@@ -46,6 +46,12 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _progressText = "";
 
+    [ObservableProperty]
+    private bool _isLogExpanded;
+
+    [ObservableProperty]
+    private bool _isErrorState;
+
     public MainViewModel()
     {
         _configService = new ConfigService();
@@ -56,6 +62,14 @@ public partial class MainViewModel : ObservableObject
     {
         var timestamp = DateTime.Now.ToString("HH:mm:ss");
         LogOutput += $"[{timestamp}] {message}{Environment.NewLine}";
+
+        if (message.Contains("Error", StringComparison.OrdinalIgnoreCase) || 
+            message.Contains("fail", StringComparison.OrdinalIgnoreCase) || 
+            message.Contains("Exception", StringComparison.OrdinalIgnoreCase))
+        {
+            IsLogExpanded = true;
+            IsErrorState = true;
+        }
     }
 
     private void UpdateTranslationService()
@@ -448,6 +462,7 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
+            IsErrorState = false;
             IsTranslating = true;
             _cts = new CancellationTokenSource();
             
