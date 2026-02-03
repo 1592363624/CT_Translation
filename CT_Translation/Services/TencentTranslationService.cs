@@ -42,7 +42,7 @@ public class TencentTranslationService : ITranslationService
         // 注意：TMT 其实有 TextTranslateBatch 接口，但需要白名单。普通用户只能用 TextTranslate。
         
         int completed = 0;
-        var semaphore = new SemaphoreSlim(5); // 控制并发数，以免触发 QPS 限制
+        var semaphore = new SemaphoreSlim(3); // 降低并发数到 3，以免触发 QPS 限制 (默认5)
         var tasks = texts.Select(async text =>
         {
             if (cancellationToken.IsCancellationRequested) return;
@@ -50,6 +50,9 @@ public class TencentTranslationService : ITranslationService
             await semaphore.WaitAsync(cancellationToken);
             try
             {
+                // 添加随机延迟，避免瞬间并发过高
+                await Task.Delay(Random.Shared.Next(100, 300));
+                
                 var translated = await TranslateSingleWithRetryAsync(text, targetLanguage);
                 lock (result)
                 {
@@ -96,6 +99,18 @@ public class TencentTranslationService : ITranslationService
 
     private async Task<string> TranslateSingleInternalAsync(string text, string target)
     {
+        // 预检查配置
+        if (string.IsNullOrWhiteSpace(_config.SecretId) || !_config.SecretId.StartsWith("AKID", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new Exception($"腾讯云配置错误：SecretId 格式不正确（应以 AKID 开头）。当前值: '{_config.SecretId}'。请前往腾讯云控制台获取正确的 SecretId 和 SecretKey。");
+        }
+
+        // 规范化 Target 语言代码 (腾讯云使用 zh, 谷歌可能用 zh-CN)
+        if (target.Equals("zh-CN", StringComparison.OrdinalIgnoreCase))
+        {
+            target = "zh";
+        }
+
         // 构造请求体
         var requestPayload = new
         {
@@ -138,7 +153,7 @@ public class TencentTranslationService : ITranslationService
 
         // 发送请求
         var request = new HttpRequestMessage(HttpMethod.Post, $"https://{Endpoint}");
-        request.Headers.Add("Authorization", authorization);
+        request.Headers.TryAddWithoutValidation("Authorization", authorization);
         request.Headers.Add("Host", Endpoint);
         request.Headers.Add("X-TC-Action", Action);
         request.Headers.Add("X-TC-Version", Version);

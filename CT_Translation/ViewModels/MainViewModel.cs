@@ -549,6 +549,16 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 清空日志命令
+    /// </summary>
+    [RelayCommand]
+    private void ClearLog()
+    {
+        LogOutput = "";
+        IsErrorState = false;
+    }
+
     [RelayCommand]
     private void Cancel()
     {
