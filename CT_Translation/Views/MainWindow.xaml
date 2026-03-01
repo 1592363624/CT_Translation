@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:CT_Translation.ViewModels"
+        xmlns:converters="clr-namespace:CT_Translation.Converters"
         mc:Ignorable="d"
         Title="CT 汉化助手"
         Width="1200"
@@ -29,6 +30,7 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
         
         <!-- 窗口控制按钮样式 -->
         <Style x:Key="WindowControlButtonStyle" TargetType="Button">
@@ -245,7 +247,84 @@
                           Background="#1E293B"
                           RowHeight="48"
                           Padding="0"
-                          FontSize="13">
+                          FontSize="13"
+                          RowDetailsVisibilityMode="VisibleWhenSelected">
+                    
+                    <DataGrid.RowDetailsTemplate>
+                        <DataTemplate>
+                            <Border Background="#0F172A" BorderBrush="#334155" BorderThickness="0,1,0,0" Padding="16,8"
+                                    Visibility="{Binding DropDownLines.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="下拉列表选项" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8" FontSize="12"/>
+                                    <DataGrid ItemsSource="{Binding DropDownLines}" 
+                                              AutoGenerateColumns="False" 
+                                              CanUserAddRows="False"
+                                              HeadersVisibility="Column"
+                                              GridLinesVisibility="Horizontal"
+                                              HorizontalGridLinesBrush="#1E293B"
+                                              BorderThickness="1"
+                                              BorderBrush="#334155"
+                                              Background="Transparent"
+                                              RowHeight="32"
+                                              FontSize="12">
+                                        <DataGrid.Resources>
+                                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
+                                                <Setter Property="Background" Value="#1E293B"/>
+                                                <Setter Property="Foreground" Value="#94A3B8"/>
+                                                <Setter Property="Height" Value="32"/>
+                                                <Setter Property="Padding" Value="8,0"/>
+                                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                                <Setter Property="BorderBrush" Value="#334155"/>
+                                                <Setter Property="FontWeight" Value="Normal"/>
+                                            </Style>
+                                            <Style TargetType="DataGridCell" BasedOn="{StaticResource MaterialDesignDataGridCell}">
+                                                <Setter Property="Padding" Value="8,0"/>
+                                                <Setter Property="BorderThickness" Value="0"/>
+                                                <Setter Property="Foreground" Value="#CBD5E1"/>
+                                            </Style>
+                                        </DataGrid.Resources>
+                                        <DataGrid.Columns>
+                                             <DataGridTextColumn Header="完整原始行" Binding="{Binding RawLine}" IsReadOnly="True" Width="200" Visibility="Visible">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="#64748B"/>
+                                                        <Setter Property="FontFamily" Value="Consolas"/>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                             </DataGridTextColumn>
+                                             <DataGridTextColumn Header="值" Binding="{Binding Value}" IsReadOnly="True" Width="100"/>
+                                             <DataGridTextColumn Header="原始文本" Binding="{Binding OriginalText}" IsReadOnly="True" Width="*">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="TextWrapping" Value="NoWrap"/>
+                                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
+                                            <DataGridTemplateColumn Header="翻译文本" Width="*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding TranslatedText}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Foreground="#38BDF8"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <TextBox Text="{Binding TranslatedText, UpdateSourceTrigger=PropertyChanged}" 
+                                                                 Background="#0F172A"
+                                                                 Foreground="#38BDF8"
+                                                                 CaretBrush="#38BDF8"
+                                                                 BorderThickness="0"
+                                                                 VerticalContentAlignment="Center"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </DataGrid.RowDetailsTemplate>
                     
                     <DataGrid.Resources>
                         <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
@@ -287,6 +366,20 @@
                                 </Style>
                             </DataGridTextColumn.CellStyle>
                         </DataGridTextColumn>
+                        
+                        <DataGridTemplateColumn Width="40" IsReadOnly="True">
+                             <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <materialDesign:PackIcon Kind="MenuDown" 
+                                                             Width="20" Height="20" 
+                                                             Foreground="#38BDF8" 
+                                                             VerticalAlignment="Center" 
+                                                             HorizontalAlignment="Center"
+                                                             Visibility="{Binding HasDropDown, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                             ToolTip="包含下拉列表 (点击行展开)"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         
                         <DataGridTextColumn Header="ID" Binding="{Binding Id}" IsReadOnly="True" Width="100">
                              <DataGridTextColumn.ElementStyle>

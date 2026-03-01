@@ -158,6 +158,12 @@ public partial class MainViewModel : ObservableObject
                 var descNode = entry.Element("Description");
                 var idNode = entry.Element("ID");
 
+                // 严格区分 DropDownList 和 DropDownListLink
+                // 有些 CT 表可能同时存在 DropDownList 和 DropDownListLink，或者只有其中一个
+                // 这里的逻辑是优先找 DropDownList，因为那是包含实际选项文本的地方
+                // DropDownListLink 只是引用另一个 ID，不包含文本，不需要翻译
+                var dropDownNode = entry.Element("DropDownList");
+
                 if (descNode != null)
                 {
                     // CT 文件中的 Description 通常包含引号，例如 "Description"，我们需要处理一下
@@ -177,16 +183,79 @@ public partial class MainViewModel : ObservableObject
                         displayValue = displayValue.Substring(1, displayValue.Length - 2);
                         hasQuotes = true;
                     }
-                    
-                    Entries.Add(new CheatEntryModel
+
+                    var cheatEntry = new CheatEntryModel
                     {
                         Index = indexCounter++,
                         Id = idNode?.Value ?? "N/A",
                         OriginalDescription = displayValue, // 此时存储的是无引号的内容
                         TranslatedDescription = displayValue, // 默认翻译为原文
                         XmlElement = descNode,
-                        HasQuotes = hasQuotes
-                    });
+                        HasQuotes = hasQuotes,
+                        DropDownListElement = dropDownNode
+                    };
+
+                    // 解析 DropDownList
+                    if (dropDownNode != null && !string.IsNullOrWhiteSpace(dropDownNode.Value))
+                    {
+                        var lines = dropDownNode.Value.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var line in lines)
+                        {
+                            string value = "";
+                            string text = "";
+                            bool hasValue = false;
+
+                            // 处理特殊格式 ": Description" (无 Value，仅作为标题或分隔符)
+                            if (line.TrimStart().StartsWith(":"))
+                            {
+                                var parts = line.Split(new[] { ':' }, 2);
+                                if (parts.Length == 2)
+                                {
+                                    value = parts[0]; // 空字符串
+                                    text = parts[1];
+                                    hasValue = false; // 这种通常不算作有效选项值
+                                }
+                            }
+                            // 处理标准格式 "Value:Description"
+                            else if (line.Contains(":"))
+                            {
+                                var parts = line.Split(new[] { ':' }, 2);
+                                value = parts[0];
+                                text = parts[1];
+                                hasValue = true;
+                            }
+                            // 处理纯文本格式 "Description"
+                            else
+                            {
+                                value = "";
+                                text = line;
+                                hasValue = false;
+                            }
+
+                            cheatEntry.DropDownLines.Add(new DropDownLineModel
+                            {
+                                HasValue = hasValue,
+                                Value = value.Trim(),
+                                OriginalText = text.Trim(), // 只翻译冒号后面的内容
+                                TranslatedText = text.Trim(),
+                                RawLine = line
+                            });
+                        }
+                        
+                        cheatEntry.HasDropDown = cheatEntry.DropDownLines.Count > 0;
+                        if (cheatEntry.HasDropDown)
+                        {
+                            AppendLog($"Parsed DropDownList for Entry {cheatEntry.Index} (ID: {cheatEntry.Id}): {cheatEntry.DropDownLines.Count} lines found.");
+                            // 抽样打印第一行，方便调试
+                            if (cheatEntry.DropDownLines.Count > 0)
+                            {
+                                var first = cheatEntry.DropDownLines[0];
+                                AppendLog($"Sample Line 1 -> Raw: '{first.RawLine}', Val: '{first.Value}', Text: '{first.OriginalText}'");
+                            }
+                        }
+                    }
+                    
+                    Entries.Add(cheatEntry);
                 }
             }
             StatusMessage = $"已加载 {Entries.Count} 个条目";
@@ -231,6 +300,54 @@ public partial class MainViewModel : ObservableObject
                         {
                             entry.XmlElement.Value = entry.TranslatedDescription;
                         }
+                    }
+
+                    if (entry.DropDownListElement != null && entry.DropDownLines.Count > 0)
+                    {
+                        var sb = new StringBuilder();
+                        foreach (var line in entry.DropDownLines)
+                        {
+                            // 使用 RawLine 作为基础，尝试只替换文本部分，保持格式
+                            if (!string.IsNullOrEmpty(line.RawLine))
+                            {
+                                string newLine = line.RawLine;
+                                
+                                if (!string.IsNullOrEmpty(line.OriginalText) && 
+                                    !string.IsNullOrEmpty(line.TranslatedText) &&
+                                    line.OriginalText != line.TranslatedText)
+                                {
+                                    // 查找 OriginalText 在 RawLine 中的位置
+                                    // 我们需要从后往前找，或者根据 Value 的长度来判断
+                                    // 比较安全的方式是：
+                                    // 1. 如果有 Value，则 OriginalText 应该在冒号后面
+                                    // 2. 如果没有 Value，则 OriginalText 就是整行（或者去掉了前导冒号）
+                                    
+                                    int originalIndex = newLine.LastIndexOf(line.OriginalText);
+                                    if (originalIndex >= 0)
+                                    {
+                                        // 替换最后一次出现的 OriginalText，这通常是最安全的
+                                        newLine = newLine.Remove(originalIndex, line.OriginalText.Length)
+                                                         .Insert(originalIndex, line.TranslatedText);
+                                    }
+                                }
+                                sb.AppendLine(newLine);
+                            }
+                            else
+                            {
+                                // Fallback
+                                if (line.HasValue)
+                                {
+                                    sb.AppendLine($"{line.Value}:{line.TranslatedText}");
+                                }
+                                else
+                                {
+                                    sb.AppendLine(line.TranslatedText);
+                                }
+                            }
+                        }
+                        // 移除最后一个换行符，或者保留（取决于原文格式，通常 XML 文本节点如果最后有换行符也无所谓）
+                        // 为了整洁，去掉最后的换行
+                        entry.DropDownListElement.Value = sb.ToString().TrimEnd();
                     }
                 }
 
@@ -282,16 +399,45 @@ public partial class MainViewModel : ObservableObject
         }
 
         var newline = sourceText.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-        var updatedValues = _currentDoc.Descendants("Description")
+
+        // Update Description
+        var updatedDescValues = _currentDoc.Descendants("Description")
             .Select(d => NormalizeLineEndings(d.Value, newline))
             .ToList();
+        sourceText = ReplaceXmlValues(sourceText, "Description", updatedDescValues, strictTagName: true);
 
-        var matches = Regex.Matches(sourceText, "(<Description[^>]*>)([\\s\\S]*?)(</Description>)", RegexOptions.Singleline);
-        if (matches.Count == 0)
+        // Update DropDownList (严格匹配 DropDownList 标签，不匹配 DropDownListLink)
+        // 使用 Regex 确保只匹配 DropDownList 标签，而不是 DropDownListLink
+        var updatedDropDownValues = _currentDoc.Descendants("DropDownList")
+            .Select(d => NormalizeLineEndings(d.Value, newline))
+            .ToList();
+        
+        // 使用更严格的正则：匹配 <DropDownList> 或 <DropDownList ...>
+        // 排除 DropDownListLink
+        sourceText = ReplaceXmlValues(sourceText, "DropDownList", updatedDropDownValues, strictTagName: true);
+
+        WriteTextWithEncoding(outputPath, sourceText, encoding, bomInfo.HasBom);
+    }
+
+    private static string ReplaceXmlValues(string sourceText, string tagName, List<string> newValues, bool strictTagName = false)
+    {
+        string pattern;
+        if (strictTagName)
         {
-            WriteTextWithEncoding(outputPath, sourceText, encoding, bomInfo.HasBom);
-            return;
+            // 严格匹配：确保标签名后面紧跟空白或>，防止匹配到 DropDownListLink
+            // <DropDownList> 或 <DropDownList attribute="...">
+            // [^>]* 可能会匹配到 ListLink 中的 Link 部分，所以需要限制
+            // 这里的正则逻辑：
+            // <tagName(\s+[^>]*)?>
+            pattern = $"(<{tagName}(?:\\s+[^>]*)?>)([\\s\\S]*?)(</{tagName}>)";
         }
+        else
+        {
+            pattern = $"(<{tagName}[^>]*>)([\\s\\S]*?)(</{tagName}>)";
+        }
+
+        var matches = Regex.Matches(sourceText, pattern, RegexOptions.Singleline);
+        if (matches.Count == 0) return sourceText;
 
         var builder = new StringBuilder(sourceText.Length + 256);
         var lastIndex = 0;
@@ -302,7 +448,7 @@ public partial class MainViewModel : ObservableObject
             builder.Append(sourceText, lastIndex, match.Index - lastIndex);
 
             var originalInner = match.Groups[2].Value;
-            var newValue = valueIndex < updatedValues.Count ? updatedValues[valueIndex] : originalInner;
+            var newValue = valueIndex < newValues.Count ? newValues[valueIndex] : originalInner;
             valueIndex++;
 
             var leading = GetLeadingWhitespace(originalInner);
@@ -315,7 +461,7 @@ public partial class MainViewModel : ObservableObject
             }
             else
             {
-                var escaped = EncodeXmlText(newValue);
+                var escaped = EncodeXmlText(newValue, tagName);
                 replacedInner = leading + escaped + trailing;
             }
 
@@ -326,7 +472,7 @@ public partial class MainViewModel : ObservableObject
         }
 
         builder.Append(sourceText, lastIndex, sourceText.Length - lastIndex);
-        WriteTextWithEncoding(outputPath, builder.ToString(), encoding, bomInfo.HasBom);
+        return builder.ToString();
     }
 
     private static (Encoding Encoding, bool HasBom, int PreambleLength) DetectBom(byte[] bytes)
@@ -425,21 +571,21 @@ public partial class MainViewModel : ObservableObject
         return $"<![CDATA[{safeValue}]]>";
     }
 
-    private static string EncodeXmlText(string value)
+    private static string EncodeXmlText(string value, string tagName)
     {
         if (string.IsNullOrEmpty(value))
         {
             return string.Empty;
         }
 
-        var element = new XElement("Description", value).ToString(SaveOptions.DisableFormatting);
-        if (string.Equals(element, "<Description />", StringComparison.Ordinal))
+        var element = new XElement(tagName, value).ToString(SaveOptions.DisableFormatting);
+        if (string.Equals(element, $"<{tagName} />", StringComparison.Ordinal))
         {
             return string.Empty;
         }
 
         var start = element.IndexOf('>');
-        var end = element.LastIndexOf("</Description>", StringComparison.Ordinal);
+        var end = element.LastIndexOf($"</{tagName}>", StringComparison.Ordinal);
         return start >= 0 && end > start ? element.Substring(start + 1, end - start - 1) : value;
     }
 
@@ -471,20 +617,36 @@ public partial class MainViewModel : ObservableObject
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             
             // 收集所有需要翻译的文本
-            var toTranslate = Entries.Select(e => e.OriginalDescription).Distinct().ToList();
+            var toTranslateList = new List<string>();
+            foreach (var entry in Entries)
+            {
+                if (!string.IsNullOrWhiteSpace(entry.OriginalDescription))
+                {
+                    toTranslateList.Add(entry.OriginalDescription);
+                }
+                foreach (var line in entry.DropDownLines)
+                {
+                    if (!string.IsNullOrWhiteSpace(line.OriginalText))
+                    {
+                        toTranslateList.Add(line.OriginalText);
+                    }
+                }
+            }
             
-            if (toTranslate.Count == 0)
+            var uniqueToTranslate = toTranslateList.Distinct().ToList();
+            
+            if (uniqueToTranslate.Count == 0)
             {
                 StatusMessage = "没有需要翻译的条目";
                 return;
             }
 
-            ProgressMax = toTranslate.Count;
+            ProgressMax = uniqueToTranslate.Count;
             ProgressValue = 0;
             ProgressText = $"0/{ProgressMax}";
 
-            StatusMessage = $"正在批量翻译 {toTranslate.Count} 个唯一文本...";
-            AppendLog($"Starting batch translation for {toTranslate.Count} unique items.");
+            StatusMessage = $"正在批量翻译 {uniqueToTranslate.Count} 个唯一文本...";
+            AppendLog($"Starting batch translation for {uniqueToTranslate.Count} unique items.");
 
             var progress = new Progress<int>(p => 
             {
@@ -493,7 +655,7 @@ public partial class MainViewModel : ObservableObject
             });
 
             // 调用批量翻译
-            var translations = await _translationService.TranslateBatchAsync(toTranslate, progress, _cts.Token);
+            var translations = await _translationService.TranslateBatchAsync(uniqueToTranslate, progress, _cts.Token);
 
             AppendLog($"Batch translation completed. Received {translations.Count} results.");
 
@@ -501,27 +663,32 @@ public partial class MainViewModel : ObservableObject
             int successCount = 0;
             foreach (var entry in Entries)
             {
-                if (translations.TryGetValue(entry.OriginalDescription, out var translatedText))
+                bool entryUpdated = false;
+                
+                if (translations.TryGetValue(entry.OriginalDescription, out var translatedDesc))
                 {
-                    // 修复引号问题：将中文全角引号替换回英文半角引号
-                    // 虽然我们现在只处理内容，但翻译结果偶尔还是可能带上奇怪的标点，保险起见还是处理一下
-                    if (!string.IsNullOrEmpty(translatedText))
+                    var cleaned = CleanTranslatedText(translatedDesc);
+                    if (!string.IsNullOrEmpty(cleaned))
                     {
-                        // 移除可能被翻译引擎误加的外层引号（不管是中文还是英文）
-                        // 因为我们现在是“纯内容”翻译，不需要翻译带回引号
-                        translatedText = translatedText.Trim();
-                        if (translatedText.StartsWith("\"") && translatedText.EndsWith("\""))
-                            translatedText = translatedText.Substring(1, translatedText.Length - 2);
-                        else if (translatedText.StartsWith("“") && translatedText.EndsWith("”"))
-                            translatedText = translatedText.Substring(1, translatedText.Length - 2);
-                            
-                        // 替换中间可能出现的中文引号
-                        translatedText = translatedText.Replace("“", "\"").Replace("”", "\"");
+                        entry.TranslatedDescription = cleaned;
+                        entryUpdated = true;
                     }
-                    
-                    entry.TranslatedDescription = translatedText;
-                    successCount++;
                 }
+                
+                foreach (var line in entry.DropDownLines)
+                {
+                    if (translations.TryGetValue(line.OriginalText, out var translatedLine))
+                    {
+                        var cleaned = CleanTranslatedText(translatedLine);
+                        if (!string.IsNullOrEmpty(cleaned))
+                        {
+                            line.TranslatedText = cleaned;
+                            entryUpdated = true;
+                        }
+                    }
+                }
+                
+                if (entryUpdated) successCount++;
             }
             
             stopwatch.Stop();
@@ -563,5 +730,18 @@ public partial class MainViewModel : ObservableObject
     private void Cancel()
     {
         _cts?.Cancel();
+    }
+
+    private string CleanTranslatedText(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+
+        text = text.Trim();
+        if (text.StartsWith("\"") && text.EndsWith("\""))
+            text = text.Substring(1, text.Length - 2);
+        else if (text.StartsWith("“") && text.EndsWith("”"))
+            text = text.Substring(1, text.Length - 2);
+
+        return text.Replace("“", "\"").Replace("”", "\"");
     }
 }
