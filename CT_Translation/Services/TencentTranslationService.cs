@@ -90,6 +90,7 @@ public class TencentTranslationService : ITranslationService
             }
             catch (Exception ex)
             {
+                OnLog?.Invoke($"[Tencent] TranslateSingleWithRetryAsync attempt {i + 1} failed: {ex.Message}");
                 if (i == retries - 1) throw;
                 await Task.Delay(500 * (i + 1));
             }
@@ -100,9 +101,9 @@ public class TencentTranslationService : ITranslationService
     private async Task<string> TranslateSingleInternalAsync(string text, string target)
     {
         // 预检查配置
-        if (string.IsNullOrWhiteSpace(_config.SecretId) || !_config.SecretId.StartsWith("AKID", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(_config.SecretId))
         {
-            throw new Exception($"腾讯云配置错误：SecretId 格式不正确（应以 AKID 开头）。当前值: '{_config.SecretId}'。请前往腾讯云控制台获取正确的 SecretId 和 SecretKey。");
+            throw new Exception($"腾讯云配置错误：SecretId 为空。请前往腾讯云控制台获取正确的 SecretId 和 SecretKey。");
         }
 
         // 规范化 Target 语言代码 (腾讯云使用 zh, 谷歌可能用 zh-CN)

@@ -125,6 +125,14 @@ public class GoogleTranslationService : ITranslationService
 
         foreach (var item in source)
         {
+            // 如果当前批次为空且单个项目长度超过限制，则单独成批
+            if (currentBatch.Count == 0 && item.Length > maxChars)
+            {
+                batches.Add(new List<string> { item });
+                continue;
+            }
+            
+            // 如果添加当前项目会导致超限，则先保存当前批次
             if (currentLength + item.Length + 1 > maxChars && currentBatch.Count > 0)
             {
                 batches.Add(currentBatch);

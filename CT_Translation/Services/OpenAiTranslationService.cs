@@ -166,8 +166,16 @@ public class OpenAiTranslationService : ITranslationService
             content = content.Replace("```json", "").Replace("```", "").Trim();
             
             // 尝试修复常见 JSON 格式错误
-            if (!content.StartsWith("[")) content = content.Substring(content.IndexOf('['));
-            if (!content.EndsWith("]")) content = content.Substring(0, content.LastIndexOf(']') + 1);
+            int startIndex = content.IndexOf('[');
+            if (!content.StartsWith("[") && startIndex >= 0)
+            {
+                content = content.Substring(startIndex);
+            }
+            int endIndex = content.LastIndexOf(']');
+            if (!content.EndsWith("]") && endIndex >= 0)
+            {
+                content = content.Substring(0, endIndex + 1);
+            }
 
             var translatedTexts = JsonSerializer.Deserialize<List<string>>(content);
             if (translatedTexts != null && translatedTexts.Count == texts.Count)
@@ -192,9 +200,17 @@ public class OpenAiTranslationService : ITranslationService
     private async Task<OpenAiResponse?> SendRequestAsync(object requestBody)
     {
         // 自动处理 API URL 路径
-        var apiUrl = _config.ApiUrl?.TrimEnd('/');
-        if (!string.IsNullOrEmpty(apiUrl) && !apiUrl.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase))
+        var apiUrl = _config.ApiUrl?.Trim();
+        if (string.IsNullOrEmpty(apiUrl))
         {
+            apiUrl = "https://api.openai.com/v1/chat/completions";
+        }
+        
+        if (!apiUrl.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase))
+        {
+            // 移除末尾的斜杠
+            apiUrl = apiUrl.TrimEnd('/');
+            
             // 如果用户只填了域名或 /v1，尝试智能补全
             if (apiUrl.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
             {

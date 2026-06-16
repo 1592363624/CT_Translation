@@ -12,9 +12,12 @@ public class EqualityToVisibilityConverter : IValueConverter
         if (value == null || parameter == null)
             return Visibility.Collapsed;
 
-        string checkValue = value.ToString();
-        string targetValue = parameter.ToString();
+        string? checkValue = value.ToString();
+        string? targetValue = parameter.ToString();
         
+        if (checkValue == null || targetValue == null)
+            return Visibility.Collapsed;
+            
         return checkValue.Equals(targetValue, StringComparison.OrdinalIgnoreCase) 
             ? Visibility.Visible 
             : Visibility.Collapsed;

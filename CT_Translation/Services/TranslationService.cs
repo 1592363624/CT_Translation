@@ -21,6 +21,7 @@ public class MockTranslationService : ITranslationService
             return Task.FromResult($"\"[汉化] {content}\"");
         }
         
+        OnLog?.Invoke($"[Mock] Translating: {text}");
         return Task.FromResult($"[汉化] {text}");
     }
 

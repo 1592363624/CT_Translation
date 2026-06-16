@@ -307,31 +307,58 @@ public partial class MainViewModel : ObservableObject
                         var sb = new StringBuilder();
                         foreach (var line in entry.DropDownLines)
                         {
-                            // 使用 RawLine 作为基础，尝试只替换文本部分，保持格式
-                            if (!string.IsNullOrEmpty(line.RawLine))
+                    // 使用 RawLine 作为基础，尝试只替换文本部分，保持格式
+                    if (!string.IsNullOrEmpty(line.RawLine))
+                    {
+                        string newLine = line.RawLine;
+                        
+                        if (!string.IsNullOrEmpty(line.OriginalText) && 
+                            !string.IsNullOrEmpty(line.TranslatedText) &&
+                            line.OriginalText != line.TranslatedText)
+                        {
+                            // 根据 HasValue 判断原始文本在 RawLine 中的位置
+                            if (line.HasValue)
                             {
-                                string newLine = line.RawLine;
-                                
-                                if (!string.IsNullOrEmpty(line.OriginalText) && 
-                                    !string.IsNullOrEmpty(line.TranslatedText) &&
-                                    line.OriginalText != line.TranslatedText)
+                                // 格式: "Value:OriginalText" 或 "Value:OriginalText" (可能有空格)
+                                // 我们找到冒号的位置，然后替换冒号后的部分
+                                int colonIndex = newLine.IndexOf(':');
+                                if (colonIndex >= 0)
                                 {
-                                    // 查找 OriginalText 在 RawLine 中的位置
-                                    // 我们需要从后往前找，或者根据 Value 的长度来判断
-                                    // 比较安全的方式是：
-                                    // 1. 如果有 Value，则 OriginalText 应该在冒号后面
-                                    // 2. 如果没有 Value，则 OriginalText 就是整行（或者去掉了前导冒号）
-                                    
-                                    int originalIndex = newLine.LastIndexOf(line.OriginalText);
-                                    if (originalIndex >= 0)
+                                    // 冒号后面的部分应该是 OriginalText (可能有前导空格)
+                                    // 我们尝试精确匹配 OriginalText 的位置
+                                    string afterColon = newLine.Substring(colonIndex + 1);
+                                    int textIndex = afterColon.IndexOf(line.OriginalText);
+                                    if (textIndex >= 0)
                                     {
-                                        // 替换最后一次出现的 OriginalText，这通常是最安全的
-                                        newLine = newLine.Remove(originalIndex, line.OriginalText.Length)
-                                                         .Insert(originalIndex, line.TranslatedText);
+                                        // 计算在原始字符串中的绝对位置
+                                        int absoluteIndex = colonIndex + 1 + textIndex;
+                                        newLine = newLine.Remove(absoluteIndex, line.OriginalText.Length)
+                                                       .Insert(absoluteIndex, line.TranslatedText);
                                     }
                                 }
-                                sb.AppendLine(newLine);
                             }
+                            else
+                            {
+                                // 没有 Value，OriginalText 就是整行（或者去掉了前导冒号）
+                                // 如果 RawLine 以冒号开头，则移除冒号后比较
+                                string lineToCompare = newLine.TrimStart();
+                                if (lineToCompare.StartsWith(":"))
+                                {
+                                    lineToCompare = lineToCompare.Substring(1).TrimStart();
+                                }
+                                
+                                // 查找 OriginalText 在 RawLine 中的位置
+                                int originalIndex = newLine.LastIndexOf(line.OriginalText);
+                                if (originalIndex >= 0)
+                                {
+                                    // 替换最后一次出现的 OriginalText
+                                    newLine = newLine.Remove(originalIndex, line.OriginalText.Length)
+                                                   .Insert(originalIndex, line.TranslatedText);
+                                }
+                            }
+                        }
+                        sb.AppendLine(newLine);
+                    }
                             else
                             {
                                 // Fallback
@@ -425,11 +452,10 @@ public partial class MainViewModel : ObservableObject
         if (strictTagName)
         {
             // 严格匹配：确保标签名后面紧跟空白或>，防止匹配到 DropDownListLink
-            // <DropDownList> 或 <DropDownList attribute="...">
-            // [^>]* 可能会匹配到 ListLink 中的 Link 部分，所以需要限制
-            // 这里的正则逻辑：
-            // <tagName(\s+[^>]*)?>
-            pattern = $"(<{tagName}(?:\\s+[^>]*)?>)([\\s\\S]*?)(</{tagName}>)";
+            // 使用边界检查：标签名后不能是字母数字（避免匹配 DropDownListLink）
+            // 模式：<DropDownList(后面是空白或>或属性) ... >
+            // 修正：使用负向预测确保标签名后不是字母数字
+            pattern = $"(<{tagName}(?=[\\s>])[^>]*>)([\\s\\S]*?)(</{tagName}>)";
         }
         else
         {
