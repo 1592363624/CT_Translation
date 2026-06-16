@@ -73,6 +73,23 @@ public partial class CheatEntryModel : ObservableObject
     public XElement? DropDownListElement { get; set; }
 
     /// <summary>
+    /// 对应的 DropDownListLink XML 元素
+    /// </summary>
+    public XElement? DropDownListLinkElement { get; set; }
+
+    /// <summary>
+    /// 原始的 DropDownListLink 文本
+    /// </summary>
+    [ObservableProperty]
+    private string _originalDropDownLinkText = string.Empty;
+
+    /// <summary>
+    /// 翻译后的 DropDownListLink 文本
+    /// </summary>
+    [ObservableProperty]
+    private string _translatedDropDownLinkText = string.Empty;
+
+    /// <summary>
     /// 标记原始值是否被双引号包裹
     /// </summary>
     public bool HasQuotes { get; set; }

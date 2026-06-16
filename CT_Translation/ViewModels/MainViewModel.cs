@@ -161,8 +161,9 @@ public partial class MainViewModel : ObservableObject
                 // 严格区分 DropDownList 和 DropDownListLink
                 // 有些 CT 表可能同时存在 DropDownList 和 DropDownListLink，或者只有其中一个
                 // 这里的逻辑是优先找 DropDownList，因为那是包含实际选项文本的地方
-                // DropDownListLink 只是引用另一个 ID，不包含文本，不需要翻译
+                // DropDownListLink 包含引用 ID，需要翻译以保持与对应 Description 一致
                 var dropDownNode = entry.Element("DropDownList");
+                var dropDownLinkNode = entry.Element("DropDownListLink");
 
                 if (descNode != null)
                 {
@@ -192,7 +193,8 @@ public partial class MainViewModel : ObservableObject
                         TranslatedDescription = displayValue, // 默认翻译为原文
                         XmlElement = descNode,
                         HasQuotes = hasQuotes,
-                        DropDownListElement = dropDownNode
+                        DropDownListElement = dropDownNode,
+                        DropDownListLinkElement = dropDownLinkNode
                     };
 
                     // 解析 DropDownList
@@ -253,6 +255,15 @@ public partial class MainViewModel : ObservableObject
                                 AppendLog($"Sample Line 1 -> Raw: '{first.RawLine}', Val: '{first.Value}', Text: '{first.OriginalText}'");
                             }
                         }
+                    }
+                    
+                    // 解析 DropDownListLink
+                    if (dropDownLinkNode != null && !string.IsNullOrWhiteSpace(dropDownLinkNode.Value))
+                    {
+                        var linkText = dropDownLinkNode.Value.Trim();
+                        cheatEntry.OriginalDropDownLinkText = linkText;
+                        cheatEntry.TranslatedDropDownLinkText = linkText;
+                        AppendLog($"Parsed DropDownListLink for Entry {cheatEntry.Index} (ID: {cheatEntry.Id}): '{linkText}'");
                     }
                     
                     Entries.Add(cheatEntry);
@@ -376,6 +387,11 @@ public partial class MainViewModel : ObservableObject
                         // 为了整洁，去掉最后的换行
                         entry.DropDownListElement.Value = sb.ToString().TrimEnd();
                     }
+
+                    if (entry.DropDownListLinkElement != null && !string.IsNullOrWhiteSpace(entry.TranslatedDropDownLinkText))
+                    {
+                        entry.DropDownListLinkElement.Value = entry.TranslatedDropDownLinkText;
+                    }
                 }
 
                 SaveFilePreservingOriginalFormat(dialog.FileName);
@@ -442,6 +458,14 @@ public partial class MainViewModel : ObservableObject
         // 使用更严格的正则：匹配 <DropDownList> 或 <DropDownList ...>
         // 排除 DropDownListLink
         sourceText = ReplaceXmlValues(sourceText, "DropDownList", updatedDropDownValues, strictTagName: true);
+
+        // Update DropDownListLink
+        var updatedDropDownLinkValues = _currentDoc.Descendants("DropDownListLink")
+            .Select(d => NormalizeLineEndings(d.Value, newline))
+            .ToList();
+        
+        // 使用更严格的正则：匹配 <DropDownListLink> 或 <DropDownListLink ...>
+        sourceText = ReplaceXmlValues(sourceText, "DropDownListLink", updatedDropDownLinkValues, strictTagName: true);
 
         WriteTextWithEncoding(outputPath, sourceText, encoding, bomInfo.HasBom);
     }
@@ -657,6 +681,10 @@ public partial class MainViewModel : ObservableObject
                         toTranslateList.Add(line.OriginalText);
                     }
                 }
+                if (!string.IsNullOrWhiteSpace(entry.OriginalDropDownLinkText))
+                {
+                    toTranslateList.Add(entry.OriginalDropDownLinkText);
+                }
             }
             
             var uniqueToTranslate = toTranslateList.Distinct().ToList();
@@ -711,6 +739,17 @@ public partial class MainViewModel : ObservableObject
                             line.TranslatedText = cleaned;
                             entryUpdated = true;
                         }
+                    }
+                }
+                
+                if (!string.IsNullOrWhiteSpace(entry.OriginalDropDownLinkText) &&
+                    translations.TryGetValue(entry.OriginalDropDownLinkText, out var translatedLink))
+                {
+                    var cleanedLink = CleanTranslatedText(translatedLink);
+                    if (!string.IsNullOrEmpty(cleanedLink))
+                    {
+                        entry.TranslatedDropDownLinkText = cleanedLink;
+                        entryUpdated = true;
                     }
                 }
                 
